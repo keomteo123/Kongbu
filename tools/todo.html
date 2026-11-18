@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>해야 할 일 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .t{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line)}
+  .t:last-child{border:0}
+  .t input[type=checkbox]{width:20px;height:20px;flex:none}
+  .t .tx{flex:1;word-break:break-word}
+  .t.done .tx{color:var(--sub);text-decoration:line-through}
+  .badge{font-size:12px;padding:2px 9px;border-radius:99px;background:#0f1218;border:1px solid var(--line);color:var(--sub);white-space:nowrap}
+  .badge.late{color:#ff7b84;border-color:#5a2a30}.badge.soon{color:#f5a623;border-color:#5a4520}
+  .ib{background:transparent;color:var(--sub);padding:6px;border-radius:8px}.ib.on{color:#f5c542}
+  .tabs{display:flex;gap:6px;margin:14px 0 4px}
+  .tabs button{padding:7px 14px;font-size:14px;background:#0f1218;border:1px solid var(--line)}
+  .tabs button.on{background:var(--accent);border-color:var(--accent)}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#34d399" data-icon="list"></span><div><h1>해야 할 일</h1><p class="desc">할 일을 적고 체크하세요. 이 브라우저에 자동 저장돼요.</p></div></div>
+<div class="card">
+  <div class="row">
+    <input id="tx" placeholder="할 일을 입력하고 Enter" style="flex:3 1 200px" maxlength="200">
+    <input type="date" id="due" style="flex:1 1 140px">
+    <button class="primary" id="add"><span data-icon="plus"></span>추가</button>
+  </div>
+  <div class="tabs" id="tabs"><button data-f="all" class="on">전체</button><button data-f="open">진행 중</button><button data-f="done">완료</button></div>
+  <div id="list"></div>
+  <div class="row" style="margin-top:12px"><span class="note" id="cnt" style="margin:0"></span><button id="clr"><span data-icon="trash"></span>완료 항목 지우기</button></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='kongbu.todo.v1';let items=[],filter='all';
+try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}if(!Array.isArray(items))items=[];
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}};
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0'),now=new Date(),today=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate());
+function badge(it){
+  if(!it.due)return '';const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(it.due);if(!m)return '';
+  const d=Math.round((Date.UTC(+m[1],+m[2]-1,+m[3])-today)/864e5);
+  const cls=it.done?'':d<0?' late':d<=2?' soon':'';
+  return `<span class="badge${cls}">${d>0?'D-'+d:d===0?'오늘':'D+'+(-d)} · ${+m[2]}/${+m[3]}</span>`;
+}
+function render(){
+  const vis=items.filter(i=>filter==='all'||(filter==='done')===i.done)
+    .sort((a,b)=>(a.done-b.done)||(b.star-a.star)||((a.due||'9')>(b.due||'9')?1:-1));
+  $('list').innerHTML=vis.map(i=>`<div class="t${i.done?' done':''}" data-id="${i.id}"><input type="checkbox" ${i.done?'checked':''}><span class="tx">${esc(i.text)}</span>${badge(i)}<button class="ib star${i.star?' on':''}" title="중요"><svg class="i" viewBox="0 0 24 24" fill="${i.star?'currentColor':'none'}" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></button><button class="ib del" title="삭제"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('')||'<p class="note" style="padding:14px 0">할 일이 없어요.</p>';
+  const open=items.filter(i=>!i.done).length;$('cnt').textContent=`남은 할 일 ${open}개 · 완료 ${items.length-open}개`;
+}
+function add(){const v=$('tx').value.trim();if(!v)return;items.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),text:v,done:false,star:false,due:$('due').value||''});$('tx').value='';persist();render()}
+$('add').onclick=add;$('tx').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)add()});
+$('list').onclick=e=>{
+  const row=e.target.closest('.t');if(!row)return;const it=items.find(i=>i.id===row.dataset.id);if(!it)return;
+  if(e.target.matches('input[type=checkbox]'))it.done=e.target.checked;
+  else if(e.target.closest('.star'))it.star=!it.star;
+  else if(e.target.closest('.del'))items=items.filter(i=>i!==it);
+  else return;persist();render();
+};
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;filter=b.dataset.f;[...$('tabs').children].forEach(x=>x.classList.toggle('on',x===b));render()};
+$('clr').onclick=()=>{if(items.some(i=>i.done)&&confirm('완료한 항목을 모두 지울까요?')){items=items.filter(i=>!i.done);persist();render()}};
+render();
+</script></body></html>

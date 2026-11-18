@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>효과음 생성기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chips button{padding:8px 14px;font-size:14px;background:#0f1218;border:1px solid var(--line)}
+  .chips button:hover{border-color:var(--accent)}
+  .sl{display:grid;grid-template-columns:130px 1fr 74px;gap:10px;align-items:center;padding:6px 0;font-size:14px}
+  .sl span:first-child{color:var(--sub)}.sl output{text-align:right;font-variant-numeric:tabular-nums}
+  #wv{width:100%;height:110px;background:#0f1218;border-radius:12px;display:block}
+  @media(max-width:520px){.sl{grid-template-columns:90px 1fr 60px}}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#e11d48" data-icon="wave"></span><div><h1>효과음 생성기</h1><p class="desc">8비트 게임 효과음을 슬라이더로 만들고 wav로 저장해요. 프리셋을 누른 뒤 조금씩 바꿔 보세요.</p></div></div>
+
+<div class="card">
+  <h3>프리셋</h3>
+  <div class="chips" id="pre"></div>
+</div>
+<div class="card">
+  <canvas id="wv"></canvas>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="play"><span data-icon="play"></span>재생</button>
+    <button id="mut"><span data-icon="swap"></span>조금 변형</button>
+    <button id="save"><span data-icon="download"></span>wav 저장</button>
+    <label style="display:flex;gap:8px;align-items:center;margin:0;flex:1 1 180px"><input type="checkbox" id="auto" checked> 슬라이더 놓으면 자동 재생</label>
+  </div>
+  <div class="note" id="info" style="margin-top:10px"></div>
+</div>
+<div class="card">
+  <h3>소리 조절</h3>
+  <div class="sl"><span>파형</span><select id="wave"><option value="square">사각파 (뿅)</option><option value="saw">톱니파 (날카로운)</option><option value="sine">사인파 (부드러운)</option><option value="noise">노이즈 (폭발·타격)</option></select><span></span></div>
+  <div id="sliders"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const SR=44100;
+const P=[ // 키, 이름, 최소, 최대, 간격, 단위
+ ['freq','시작 높이',40,2400,1,'Hz'],['slope','음 높이 변화',-8,8,.05,'옥타브/초'],['arpMult','중간 음 점프',.25,4,.01,'배'],['arpTime','점프 시점',0,.6,.01,'초'],
+ ['vibDepth','떨림 세기',0,1,.01,''],['vibSpeed','떨림 속도',0,30,.5,'Hz'],['duty','사각파 폭',.05,.95,.01,''],
+ ['attack','시작(어택)',0,.3,.005,'초'],['sustain','유지',0,.8,.01,'초'],['decay','사라짐',0,1.5,.01,'초'],
+ ['lowpass','고음 깎기',200,20000,100,'Hz'],['bits','거친 정도(비트)',3,16,1,'bit'],['volume','볼륨',.05,1,.01,'']
+];
+const BASE={wave:'square',freq:440,slope:0,arpMult:1,arpTime:0,vibDepth:0,vibSpeed:0,duty:.5,attack:.005,sustain:.1,decay:.2,lowpass:20000,bits:16,volume:.7};
+const PRESETS={
+ '코인':{freq:988,arpMult:1.5,arpTime:.07,sustain:.08,decay:.25},
+ '점프':{freq:260,slope:2.2,sustain:.08,decay:.18,duty:.35},
+ '레이저':{wave:'saw',freq:1600,slope:-4,sustain:.05,decay:.2,lowpass:8000},
+ '폭발':{wave:'noise',freq:180,slope:-1.5,sustain:.15,decay:.7,lowpass:2500,bits:10},
+ '파워업':{freq:300,slope:3,vibDepth:.3,vibSpeed:14,sustain:.25,decay:.25,duty:.25},
+ '피격':{wave:'noise',freq:420,slope:-2,sustain:.02,decay:.14,lowpass:5000},
+ '클릭':{freq:900,attack:.001,sustain:.01,decay:.04},
+ '블립':{wave:'sine',freq:660,arpMult:1.33,arpTime:.05,sustain:.06,decay:.12}
+};
+let cur=Object.assign({},BASE,PRESETS['코인']),buf=null,ac=null;
+
+/* ---------- 합성 ---------- */
+function synth(p){
+  const n=Math.max(1,Math.ceil((p.attack+p.sustain+p.decay)*SR)),out=new Float32Array(n);
+  let ph=0,lp=0,nz=Math.random()*2-1;
+  const a=1-Math.exp(-2*Math.PI*Math.min(p.lowpass,SR/2-1)/SR),levels=Math.pow(2,p.bits-1);
+  for(let i=0;i<n;i++){
+    const t=i/SR;
+    let f=p.freq*Math.pow(2,p.slope*t);if(p.arpMult!==1&&t>=p.arpTime)f*=p.arpMult;
+    f*=1+p.vibDepth*.5*Math.sin(2*Math.PI*p.vibSpeed*t);
+    f=Math.max(20,Math.min(20000,f));
+    ph+=f/SR;let wrapped=false;if(ph>=1){ph-=Math.floor(ph);wrapped=true}
+    let s;
+    if(p.wave==='square')s=ph<p.duty?1:-1;
+    else if(p.wave==='saw')s=2*ph-1;
+    else if(p.wave==='sine')s=Math.sin(2*Math.PI*ph);
+    else{if(wrapped)nz=Math.random()*2-1;s=nz}
+    let env;
+    if(t<p.attack)env=p.attack?t/p.attack:1;
+    else if(t<p.attack+p.sustain)env=1;
+    else env=p.decay?Math.max(0,1-(t-p.attack-p.sustain)/p.decay):0;
+    if(p.lowpass<20000){lp+=a*(s-lp);s=lp}
+    if(p.bits<16)s=Math.round(s*levels)/levels;
+    out[i]=Math.max(-1,Math.min(1,s*env*p.volume));
+  }
+  return out;
+}
+function wav(samples){
+  const b=new ArrayBuffer(44+samples.length*2),v=new DataView(b);
+  const w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  w(0,'RIFF');v.setUint32(4,36+samples.length*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,samples.length*2,true);
+  for(let i=0;i<samples.length;i++)v.setInt16(44+i*2,Math.round(Math.max(-1,Math.min(1,samples[i]))*32767),true);
+  return new Blob([b],{type:'audio/wav'});
+}
+function draw(){
+  const c=$('wv'),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=110;c.width=w*dpr;c.height=h*dpr;
+  const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);
+  x.strokeStyle='#252b38';x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();
+  x.fillStyle='#e11d48';const step=buf.length/w;
+  for(let px=0;px<w;px++){let mn=1,mx=-1;for(let i=Math.floor(px*step);i<Math.min(buf.length,Math.floor((px+1)*step)+1);i++){const s=buf[i];if(s<mn)mn=s;if(s>mx)mx=s}
+    if(mx<mn)continue;const y1=h/2-mx*h/2*.95,y2=h/2-mn*h/2*.95;x.fillRect(px,y1,1,Math.max(1,y2-y1))}
+  $('info').textContent=`길이 ${(buf.length/SR).toFixed(2)}초 · ${Math.round(buf.length*2/1024)}KB (wav)`;
+}
+function rebuild(){buf=synth(cur);draw()}
+function play(){
+  if(!buf)rebuild();
+  ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();
+  const ab=ac.createBuffer(1,buf.length,SR);ab.copyToChannel(buf,0);
+  const s=ac.createBufferSource();s.buffer=ab;s.connect(ac.destination);s.start();
+}
+
+/* ---------- UI ---------- */
+const sliders=$('sliders');
+P.forEach(([k,name,mn,mx,st,u])=>{
+  const d=document.createElement('div');d.className='sl';
+  d.innerHTML=`<span>${name}</span><input type="range" id="r_${k}" min="${mn}" max="${mx}" step="${st}"><output id="o_${k}"></output>`;sliders.appendChild(d);
+  const r=d.querySelector('input'),o=d.querySelector('output');
+  r.addEventListener('input',()=>{cur[k]=+r.value;o.textContent=(+r.value).toLocaleString('ko-KR')+(u?' '+u:'');rebuild()});
+  r.addEventListener('change',()=>{if($('auto').checked)play()});
+});
+$('wave').onchange=()=>{cur.wave=$('wave').value;rebuild();if($('auto').checked)play()};
+function sync(){
+  $('wave').value=cur.wave;
+  P.forEach(([k,,,,,u])=>{const r=$('r_'+k);r.value=cur[k];$('o_'+k).textContent=(+cur[k]).toLocaleString('ko-KR')+(u?' '+u:'')});
+  rebuild();
+}
+Object.keys(PRESETS).forEach(n=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{cur=Object.assign({},BASE,PRESETS[n]);sync();play()};$('pre').appendChild(b)});
+const rb=document.createElement('button');rb.textContent='랜덤';rb.onclick=()=>{
+  const R=(a,b)=>a+Math.random()*(b-a);
+  cur=Object.assign({},BASE,{wave:['square','square','saw','sine','noise'][Math.floor(Math.random()*5)],freq:R(100,1400),slope:R(-3,3),
+    arpMult:Math.random()<.4?R(.5,2):1,arpTime:R(.03,.2),vibDepth:Math.random()<.4?R(0,.6):0,vibSpeed:R(4,20),duty:R(.15,.7),sustain:R(.02,.25),decay:R(.08,.5),lowpass:Math.random()<.4?R(1500,9000):20000,bits:Math.random()<.3?Math.floor(R(5,10)):16});
+  sync();play()};$('pre').appendChild(rb);
+$('play').onclick=play;
+$('mut').onclick=()=>{
+  P.forEach(([k,,mn,mx])=>{if(['volume','bits','lowpass'].includes(k))return;let v=cur[k]*(.85+Math.random()*.3);if(Math.abs(cur[k])<1e-6)v=(Math.random()-.5)*.1*(mx-mn);cur[k]=Math.max(mn,Math.min(mx,v))});
+  sync();play();
+};
+$('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(wav(buf));a.download='sfx.wav';a.click()};
+window.addEventListener('resize',()=>buf&&draw());
+sync();
+</script></body></html>

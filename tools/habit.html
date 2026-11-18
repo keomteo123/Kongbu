@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>습관 트래커 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .h{padding:14px 0;border-bottom:1px solid var(--line)}.h:last-child{border:0}
+  .hh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .hh b{font-size:16px;word-break:break-word}
+  .tags{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--sub);white-space:nowrap}
+  .fire{color:#ff8a4c;font-weight:700}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .d{border:1px solid var(--line);background:#0f1218;border-radius:12px;padding:8px 0;text-align:center;cursor:pointer;color:var(--sub);font-size:12px;user-select:none}
+  .d b{display:block;color:var(--text);font-size:15px;margin-top:2px}
+  .d.on{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff}.d.on b{color:#fff}
+  .d.today{outline:2px solid #fff3}.d.off{opacity:.35;cursor:not-allowed}
+  .ib{background:transparent;color:var(--sub);padding:5px;border-radius:8px}
+  .wk{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:12px}.wk b{min-width:170px;text-align:center}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#fb7185" data-icon="flame"></span><div><h1>습관 트래커</h1><p class="desc">매일 한 칸씩 눌러 체크하세요. 연속 달성일이 쌓여요. 이 브라우저에 저장돼요.</p></div></div>
+<div class="card">
+  <div class="row"><input id="nm" placeholder="새 습관 (예: 영어 단어 20개)" maxlength="40" style="flex:3 1 200px"><button class="primary" id="add"><span data-icon="plus"></span>추가</button></div>
+</div>
+<div class="card">
+  <div class="wk"><button id="pv" style="padding:8px 12px"><span data-icon="back"></span></button><b id="wl"></b><button id="nx" style="padding:8px 12px"><span data-icon="back" style="display:inline-block;transform:scaleX(-1)"></span></button></div>
+  <div id="list"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='kongbu.habit.v1';let hs=[];
+try{hs=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}if(!Array.isArray(hs))hs=[];
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(hs))}catch(e){}};
+const pad=n=>String(n).padStart(2,'0'),iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const WD=['월','화','수','목','금','토','일'];
+const now=new Date(),todayD=new Date(now.getFullYear(),now.getMonth(),now.getDate()),todayS=iso(todayD);
+const mondayOf=d=>{const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
+let wk=mondayOf(todayD);
+function streak(h){let d=new Date(todayD),n=0;if(!h.days[iso(d)])d.setDate(d.getDate()-1);while(h.days[iso(d)]){n++;d.setDate(d.getDate()-1)}return n}
+function rate(h){const first=new Date(todayD.getFullYear(),todayD.getMonth(),1);let done=0;for(let d=new Date(first);d<=todayD;d.setDate(d.getDate()+1))if(h.days[iso(d)])done++;return Math.round(done/todayD.getDate()*100)}
+function render(){
+  const end=new Date(wk);end.setDate(end.getDate()+6);
+  $('wl').textContent=`${wk.getMonth()+1}/${wk.getDate()} ~ ${end.getMonth()+1}/${end.getDate()}`;
+  $('list').innerHTML=hs.map(h=>{
+    let cells='';for(let i=0;i<7;i++){const d=new Date(wk);d.setDate(d.getDate()+i);const s=iso(d),fut=s>todayS;
+      cells+=`<div class="d${h.days[s]?' on':''}${s===todayS?' today':''}${fut?' off':''}" data-id="${h.id}" data-d="${s}">${WD[i]}<b>${d.getDate()}</b></div>`}
+    const st=streak(h);
+    return `<div class="h"><div class="hh"><b>${esc(h.name)}</b><span class="tags">${st?`<span class="fire">${st}일 연속</span>`:''}<span>이번 달 ${rate(h)}%</span><button class="ib" data-del="${h.id}" title="삭제"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div><div class="days">${cells}</div></div>`;
+  }).join('')||'<p class="note">위에서 습관을 추가해 보세요.</p>';
+}
+function add(){const v=$('nm').value.trim();if(!v)return;hs.push({id:Date.now().toString(36),name:v,days:{}});$('nm').value='';persist();render()}
+$('add').onclick=add;$('nm').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing)add()});
+$('list').onclick=e=>{
+  const d=e.target.closest('.d'),x=e.target.closest('[data-del]');
+  if(d&&!d.classList.contains('off')){const h=hs.find(k=>k.id===d.dataset.id);if(h){if(h.days[d.dataset.d])delete h.days[d.dataset.d];else h.days[d.dataset.d]=1;persist();render()}}
+  else if(x){const h=hs.find(k=>k.id===x.dataset.del);if(h&&confirm(`"${h.name}" 습관을 삭제할까요?`)){hs=hs.filter(k=>k!==h);persist();render()}}
+};
+$('pv').onclick=()=>{wk.setDate(wk.getDate()-7);render()};$('nx').onclick=()=>{wk.setDate(wk.getDate()+7);render()};
+render();
+</script></body></html>

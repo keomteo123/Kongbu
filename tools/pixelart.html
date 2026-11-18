@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>픽셀 아트 에디터 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .stage{position:relative;flex:1 1 320px;max-width:560px;aspect-ratio:1;border-radius:10px;overflow:hidden;touch-action:none;
+    background:conic-gradient(#2a2e38 25%,#1f222a 0 50%,#2a2e38 0 75%,#1f222a 0) 0 0/16px 16px}
+  #cv{width:100%;height:100%;image-rendering:pixelated;display:block;cursor:crosshair}
+  #grid{position:absolute;inset:0;pointer-events:none}
+  .side{flex:1 1 200px;min-width:200px}
+  .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .tools button{padding:10px 4px;font-size:12px;flex-direction:column;gap:4px;background:#0f1218;border:1px solid var(--line)}
+  .tools button.on{border-color:var(--accent);background:#162036}
+  .pal{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+  .pal i{aspect-ratio:1;border-radius:6px;border:2px solid transparent;cursor:pointer;display:block;box-shadow:inset 0 0 0 1px #0006}
+  .pal i.on{border-color:#fff}
+  .cur{width:100%;height:36px;border-radius:10px;border:1px solid var(--line);margin-bottom:10px}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#d946ef" data-icon="grid"></span><div><h1>픽셀 아트 에디터</h1><p class="desc">도트를 찍어 캐릭터·아이템을 그려요. 자동 저장되고 PNG로 내보낼 수 있어요. 단축키: B 연필 · E 지우개 · G 채우기 · I 스포이트 · Ctrl+Z 되돌리기</p></div></div>
+<div class="card">
+  <div class="wrap">
+    <div class="stage" id="stage"><canvas id="cv"></canvas><div id="grid"></div></div>
+    <div class="side">
+      <div class="tools" id="tools">
+        <button data-t="pen" class="on"><span data-icon="pencil"></span>연필</button>
+        <button data-t="erase"><span data-icon="eraser"></span>지우개</button>
+        <button data-t="fill"><span data-icon="drop"></span>채우기</button>
+        <button data-t="pick"><span data-icon="target"></span>스포이트</button>
+      </div>
+      <div class="cur" id="cur"></div>
+      <div class="pal" id="pal"></div>
+      <div class="row" style="margin-top:10px"><input type="color" id="col" value="#ff004d" style="flex:0 0 56px;min-width:56px"><button id="addc" style="flex:1"><span data-icon="plus"></span>팔레트에 추가</button></div>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="sym"> 좌우 대칭으로 그리기</label>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="showg" checked> 격자 보기</label>
+      <div class="row" style="margin-top:6px">
+        <button id="undo"><span data-icon="undo"></span>되돌리기</button>
+        <button id="redo"><span data-icon="undo" style="display:inline-block;transform:scaleX(-1)"></span>다시</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card">
+  <div class="row">
+    <div><label>캔버스 크기 (바꾸면 새로 시작)</label><select id="size"><option>16</option><option>24</option><option selected>32</option><option>48</option><option>64</option></select></div>
+    <div><label>내보내기 배율</label><select id="scale"><option value="1">×1 (원본)</option><option value="4">×4</option><option value="8" selected>×8</option><option value="16">×16</option></select></div>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="exp"><span data-icon="download"></span>PNG 저장</button>
+    <button id="imp"><span data-icon="image"></span>이미지 불러오기</button>
+    <button id="clr"><span data-icon="trash"></span>전체 지우기</button>
+  </div>
+  <input type="file" id="file" accept="image/*" hidden>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='kongbu.pixelart.v1';
+let N=32,data,tool='pen',color=[255,0,77,255],drawing=false,last=null,undo=[],redo=[];
+const cv=$('cv'),ctx=cv.getContext('2d');
+let pal=['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'];
+try{const p=JSON.parse(localStorage.getItem(KEY+'.pal')||'null');if(Array.isArray(p)&&p.length)pal=p}catch(e){}
+const h2c=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16),255];
+const c2h=c=>'#'+c.slice(0,3).map(v=>v.toString(16).padStart(2,'0')).join('');
+
+function newData(n){N=n;data=new Uint8ClampedArray(N*N*4);cv.width=cv.height=N;$('grid').style.backgroundImage='linear-gradient(to right,rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.13) 1px,transparent 1px)';$('grid').style.backgroundSize=(100/N)+'% '+(100/N)+'%'}
+const paint=()=>ctx.putImageData(new ImageData(data,N,N),0,0);
+const snap=()=>{undo.push(data.slice());if(undo.length>60)undo.shift();redo=[]};
+function persist(){try{let s='';for(let i=0;i<data.length;i++)s+=String.fromCharCode(data[i]);localStorage.setItem(KEY,JSON.stringify({n:N,d:btoa(s)}))}catch(e){}}
+function restore(){
+  try{const o=JSON.parse(localStorage.getItem(KEY)||'null');if(!o||!o.n||!o.d)return false;
+    const s=atob(o.d);if(s.length!==o.n*o.n*4)return false;newData(o.n);for(let i=0;i<s.length;i++)data[i]=s.charCodeAt(i);$('size').value=o.n;return true}catch(e){return false}
+}
+/* ---------- 도구 ---------- */
+const idx=(x,y)=>(y*N+x)*4;
+function setPx(x,y,c){if(x<0||y<0||x>=N||y>=N)return;const i=idx(x,y);data[i]=c[0];data[i+1]=c[1];data[i+2]=c[2];data[i+3]=c[3]}
+function put(x,y,c){setPx(x,y,c);if($('sym').checked)setPx(N-1-x,y,c)}
+function flood(x,y,c){
+  const i0=idx(x,y),t=[data[i0],data[i0+1],data[i0+2],data[i0+3]];
+  if(t[0]===c[0]&&t[1]===c[1]&&t[2]===c[2]&&t[3]===c[3])return;
+  const same=i=>data[i]===t[0]&&data[i+1]===t[1]&&data[i+2]===t[2]&&data[i+3]===t[3],st=[[x,y]];
+  while(st.length){const [px,py]=st.pop();if(px<0||py<0||px>=N||py>=N)continue;const i=idx(px,py);if(!same(i))continue;
+    data[i]=c[0];data[i+1]=c[1];data[i+2]=c[2];data[i+3]=c[3];st.push([px+1,py],[px-1,py],[px,py+1],[px,py-1])}
+}
+function line(a,b,f){let [x0,y0]=a;const [x1,y1]=b,dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let e=dx+dy;
+  for(;;){f(x0,y0);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>=dy){e+=dy;x0+=sx}if(e2<=dx){e+=dx;y0+=sy}}}
+function cell(e){const r=cv.getBoundingClientRect();return[Math.max(0,Math.min(N-1,Math.floor((e.clientX-r.left)/r.width*N))),Math.max(0,Math.min(N-1,Math.floor((e.clientY-r.top)/r.height*N)))]}
+function apply(x,y){
+  if(tool==='pen')put(x,y,color);else if(tool==='erase')put(x,y,[0,0,0,0]);
+}
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();cv.setPointerCapture(e.pointerId);const [x,y]=cell(e);
+  if(tool==='pick'){const i=idx(x,y);if(data[i+3]){setColor([data[i],data[i+1],data[i+2],255]);setTool('pen')}return}
+  snap();
+  if(tool==='fill'){flood(x,y,color);paint();persist();return}
+  drawing=true;last=[x,y];apply(x,y);paint();
+});
+cv.addEventListener('pointermove',e=>{if(!drawing)return;const p=cell(e);line(last,p,apply);last=p;paint()});
+['pointerup','pointercancel'].forEach(t=>cv.addEventListener(t,()=>{if(drawing){drawing=false;persist()}}));
+function setTool(t){tool=t;[...$('tools').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+$('tools').onclick=e=>{const b=e.target.closest('button');if(b)setTool(b.dataset.t)};
+function setColor(c){color=c;$('cur').style.background=c2h(c);$('col').value=c2h(c);[...$('pal').children].forEach(i=>i.classList.toggle('on',i.dataset.h===c2h(c)))}
+function drawPal(){$('pal').innerHTML=pal.map(h=>`<i data-h="${h}" style="background:${h}" title="${h}"></i>`).join('');setColor(color)}
+$('pal').onclick=e=>{const i=e.target.closest('i');if(i)setColor(h2c(i.dataset.h))};
+$('col').oninput=()=>setColor(h2c($('col').value));
+$('addc').onclick=()=>{const h=c2h(color);if(!pal.includes(h)){pal.push(h);try{localStorage.setItem(KEY+'.pal',JSON.stringify(pal))}catch(e){}drawPal()}};
+$('showg').onchange=()=>$('grid').style.display=$('showg').checked?'':'none';
+function doUndo(){if(!undo.length)return;redo.push(data.slice());data=undo.pop();paint();persist()}
+function doRedo(){if(!redo.length)return;undo.push(data.slice());data=redo.pop();paint();persist()}
+$('undo').onclick=doUndo;$('redo').onclick=doRedo;
+document.addEventListener('keydown',e=>{
+  if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)&&document.activeElement.type!=='checkbox')return;
+  const k=e.key.toLowerCase();
+  if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo()}
+  else if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();doRedo()}
+  else if(!e.ctrlKey&&!e.metaKey){const m={b:'pen',e:'erase',g:'fill',i:'pick'}[k];if(m)setTool(m)}
+});
+/* ---------- 파일 ---------- */
+$('clr').onclick=()=>{snap();data.fill(0);paint();persist()};
+$('size').onchange=()=>{
+  const n=+$('size').value;
+  if(data.some(v=>v)&&!confirm('캔버스 크기를 바꾸면 지금 그림은 지워져요. 계속할까요?')){$('size').value=N;return}
+  undo=[];redo=[];newData(n);paint();persist();
+};
+$('exp').onclick=()=>{
+  const s=+$('scale').value,o=document.createElement('canvas');o.width=o.height=N*s;const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(cv,0,0,N*s,N*s);
+  o.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`pixel-art-${N}x${N}.png`;a.click()},'image/png');
+};
+$('imp').onclick=()=>$('file').click();
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const img=new Image();
+  img.onload=()=>{snap();const t=document.createElement('canvas');t.width=t.height=N;const x=t.getContext('2d');x.imageSmoothingEnabled=false;
+    const s=Math.min(N/img.naturalWidth,N/img.naturalHeight),w=Math.max(1,Math.round(img.naturalWidth*s)),h=Math.max(1,Math.round(img.naturalHeight*s));
+    x.drawImage(img,Math.floor((N-w)/2),Math.floor((N-h)/2),w,h);data=new Uint8ClampedArray(x.getImageData(0,0,N,N).data);paint();persist()};
+  img.src=URL.createObjectURL(f);e.target.value='';
+};
+if(!restore())newData(32);
+drawPal();paint();
+</script></body></html>

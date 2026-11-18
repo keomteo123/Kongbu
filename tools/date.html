@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>날짜·단위 계산기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#0ea5e9" data-icon="calendar"></span><div><h1>날짜·단위 계산기</h1><p class="desc">D-day, 날짜 차이, 단위 변환(평·근·돈·마일 포함)을 한 곳에서.</p></div></div>
+
+<div class="card">
+  <h3>D-day · 날짜 더하기</h3>
+  <div class="row">
+    <div><label>기준일</label><input type="date" id="d0"></div>
+    <div><label>목표일</label><input type="date" id="d1"></div>
+  </div>
+  <div class="big" id="ddres">-</div>
+  <div class="center note" id="ddsub" style="margin-top:-6px"></div>
+  <div class="row" style="margin-top:16px">
+    <div><label>기준일로부터</label><input type="number" id="nd" value="100"></div>
+    <div><label>&nbsp;</label><select id="ndir"><option value="1">일 후</option><option value="-1">일 전</option></select></div>
+  </div>
+  <div class="center" id="ndres" style="margin-top:10px;font-weight:600"></div>
+</div>
+
+<div class="card">
+  <h3>날짜 차이</h3>
+  <div class="row">
+    <div><label>시작일</label><input type="date" id="a0"></div>
+    <div><label>종료일</label><input type="date" id="a1"></div>
+  </div>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="incl"> 시작일도 1일로 포함</label>
+  <div class="stats" id="adres"></div>
+</div>
+
+<div class="card">
+  <h3>단위 변환</h3>
+  <div class="row">
+    <div><label>종류</label><select id="ucat"></select></div>
+    <div><label>값</label><input type="number" id="uval" value="1" step="any"></div>
+  </div>
+  <div class="row" style="margin-top:6px">
+    <div><label>변환 전</label><select id="ufrom"></select></div>
+    <button id="uswap" style="margin-top:22px;padding:11px 14px" title="바꾸기"><span data-icon="swap"></span></button>
+    <div><label>변환 후</label><select id="uto"></select></div>
+  </div>
+  <div class="big" id="ures" style="font-size:36px"></div>
+  <div class="center note" id="uall"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,'0'),DAY=864e5,WD=['일','월','화','수','목','금','토'];
+const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parse=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s||'');return m?Date.UTC(+m[1],+m[2]-1,+m[3]):null};
+const fmtD=ms=>{const d=new Date(ms);return `${d.getUTCFullYear()}년 ${d.getUTCMonth()+1}월 ${d.getUTCDate()}일 (${WD[d.getUTCDay()]})`};
+const nf=v=>Number(v.toPrecision(10)).toLocaleString('ko-KR',{maximumFractionDigits:8});
+const stat=(l,v)=>`<div class="st"><b>${v}</b><span>${l}</span></div>`;
+const today=iso(new Date());
+['d0','a0'].forEach(i=>$(i).value=today);
+
+function dday(){
+  const b=parse($('d0').value),t=parse($('d1').value);
+  if(b==null||t==null){$('ddres').textContent='-';$('ddsub').textContent='목표일을 선택해 주세요';}
+  else{const d=Math.round((t-b)/DAY);$('ddres').textContent=d>0?'D-'+d:d===0?'D-Day':'D+'+(-d);$('ddsub').textContent=fmtD(t)+(d>0?' 까지 '+d+'일 남았어요':d<0?' 로부터 '+(-d)+'일 지났어요':'');}
+  const n=Math.round(+$('nd').value||0);
+  $('ndres').textContent=b==null?'':fmtD(b+(+$('ndir').value)*n*DAY);
+}
+function ymd(a,b){const A=new Date(a),B=new Date(b);let y=B.getUTCFullYear()-A.getUTCFullYear(),m=B.getUTCMonth()-A.getUTCMonth(),d=B.getUTCDate()-A.getUTCDate();
+  if(d<0){m--;d+=new Date(Date.UTC(B.getUTCFullYear(),B.getUTCMonth(),0)).getUTCDate()}if(m<0){y--;m+=12}return[y,m,d]}
+function diff(){
+  let a=parse($('a0').value),b=parse($('a1').value);
+  if(a==null||b==null){$('adres').innerHTML='';return}
+  if(a>b)[a,b]=[b,a];
+  const days=Math.round((b-a)/DAY)+($('incl').checked?1:0),[y,m,d]=ymd(a,b);
+  let biz=0;const start=$('incl').checked?0:1;
+  for(let i=start;i<days+start;i++){const w=new Date(a+i*DAY).getUTCDay();if(w!==0&&w!==6)biz++}
+  $('adres').innerHTML=stat('총 일수',days.toLocaleString('ko-KR')+'일')+stat('주 + 일',Math.floor(days/7)+'주 '+days%7+'일')+stat('년·월·일',`${y}년 ${m}개월 ${d}일`)+stat('평일 수 (토·일 제외)',biz.toLocaleString('ko-KR')+'일');
+}
+['d0','d1','nd','ndir'].forEach(i=>$(i).addEventListener('input',dday));
+['a0','a1','incl'].forEach(i=>$(i).addEventListener('input',diff));
+
+/* 단위 변환: 값 × 계수 = 기준 단위 */
+const U={
+ '길이':{'mm':.001,'cm':.01,'m':1,'km':1000,'인치(in)':.0254,'피트(ft)':.3048,'야드(yd)':.9144,'마일(mi)':1609.344,'자(30.3cm)':.303,'리(약 392.7m)':392.7},
+ '무게':{'mg':1e-6,'g':.001,'kg':1,'톤(t)':1000,'온스(oz)':.028349523125,'파운드(lb)':.45359237,'근(600g)':.6,'돈(3.75g)':.00375,'냥(37.5g)':.0375},
+ '넓이':{'㎡':1,'㎢':1e6,'평':3.305785,'헥타르(ha)':1e4,'에이커(ac)':4046.8564224,'제곱피트(ft²)':.09290304},
+ '부피·용량':{'mL':.001,'cc':.001,'L':1,'큰술(15mL)':.015,'컵(200mL)':.2,'미국 컵':.2365882365,'미국 갤런':3.785411784,'액량 온스(US)':.0295735295625},
+ '데이터':{'B':1,'KB':1024,'MB':1048576,'GB':1073741824,'TB':1099511627776},
+ '시간':{'초':1,'분':60,'시간':3600,'일':86400,'주':604800,'30일(월)':2592000,'365일(년)':31536000},
+ '속도':{'m/s':1,'km/h':1/3.6,'mph':.44704,'노트(kn)':.514444},
+ '온도':{'섭씨(°C)':1,'화씨(°F)':1,'켈빈(K)':1}
+};
+const toBase=(cat,u,v)=>cat!=='온도'?v*U[cat][u]:(u.startsWith('섭')?v:u.startsWith('화')?(v-32)*5/9:v-273.15);
+const fromBase=(cat,u,v)=>cat!=='온도'?v/U[cat][u]:(u.startsWith('섭')?v:u.startsWith('화')?v*9/5+32:v+273.15);
+Object.keys(U).forEach(k=>$('ucat').add(new Option(k,k)));
+function fillUnits(){
+  const cat=$('ucat').value,ks=Object.keys(U[cat]);
+  [$('ufrom'),$('uto')].forEach(s=>{s.innerHTML='';ks.forEach(k=>s.add(new Option(k,k)))});
+  $('ufrom').selectedIndex=Math.min(2,ks.length-1);$('uto').selectedIndex=Math.min(cat==='넓이'?2:3,ks.length-1);
+  if(cat==='넓이'){$('ufrom').selectedIndex=2;$('uto').selectedIndex=0}
+  if(cat==='온도'){$('ufrom').selectedIndex=0;$('uto').selectedIndex=1}
+  conv();
+}
+function conv(){
+  const cat=$('ucat').value,v=+$('uval').value,f=$('ufrom').value,t=$('uto').value;
+  if(!isFinite(v)||$('uval').value===''){$('ures').textContent='-';$('uall').textContent='';return}
+  const base=toBase(cat,f,v);
+  $('ures').textContent=nf(fromBase(cat,t,base))+' '+t.replace(/\(.*\)/,'');
+  $('uall').textContent=Object.keys(U[cat]).filter(k=>k!==f).slice(0,6).map(k=>nf(fromBase(cat,k,base))+' '+k.replace(/\(.*\)/,'')).join('  ·  ');
+}
+$('ucat').onchange=fillUnits;['uval','ufrom','uto'].forEach(i=>$(i).addEventListener('input',conv));
+$('uswap').onclick=()=>{const a=$('ufrom').selectedIndex;$('ufrom').selectedIndex=$('uto').selectedIndex;$('uto').selectedIndex=a;conv()};
+$('d1').value=iso(new Date(Date.now()+30*DAY));$('a1').value=iso(new Date(Date.now()+7*DAY));
+fillUnits();dday();diff();
+</script></body></html>

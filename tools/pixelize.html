@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>픽셀화 변환기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  #out{width:100%;image-rendering:pixelated;border-radius:12px;display:block;background:conic-gradient(#2a2e38 25%,#1f222a 0 50%,#2a2e38 0 75%,#1f222a 0) 0 0/16px 16px}
+  .sw{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .sw i{width:30px;height:30px;border-radius:8px;box-shadow:inset 0 0 0 1px #0006;cursor:pointer;display:block}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#2dd4bf" data-icon="blocks"></span><div><h1>픽셀화 변환기</h1><p class="desc">사진을 도트 스타일 이미지로 바꿔요. 도트 크기와 색 수를 조절해 보세요.</p></div></div>
+<div class="card">
+  <input type="file" id="file" accept="image/*">
+  <div class="row" style="margin-top:6px">
+    <div><label>가로 도트 수 <b id="wv">64</b></label><input type="range" id="w" min="8" max="256" value="64"></div>
+    <div><label>색상</label>
+      <select id="mode"><option value="auto">자동 (색 수 지정)</option><option value="pico8">PICO-8 16색</option><option value="gb">게임보이 4색</option><option value="bw">흑백 2색</option><option value="none">원본 색 그대로</option></select></div>
+    <div id="kwrap"><label>색 수 <b id="kv">12</b></label><input type="range" id="k" min="2" max="32" value="12"></div>
+  </div>
+  <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="dith"> 디더링 (점무늬로 색 단계를 부드럽게)</label>
+  <div class="msg" id="msg"></div>
+</div>
+<div class="card" id="res" hidden>
+  <canvas id="out"></canvas>
+  <div class="sw" id="sw"></div>
+  <div class="row" style="margin-top:14px">
+    <div><label>저장 배율</label><select id="scale"><option value="1">×1 (원본 도트)</option><option value="4">×4</option><option value="8" selected>×8</option><option value="16">×16</option></select></div>
+    <button class="primary" id="dl" style="margin-top:22px"><span data-icon="download"></span>PNG 저장</button>
+  </div>
+  <div class="note" id="info"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const BAYER=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+const PAL={
+  pico8:['#000000','#1d2b53','#7e2553','#008751','#ab5236','#5f574f','#c2c3c7','#fff1e8','#ff004d','#ffa300','#ffec27','#00e436','#29adff','#83769c','#ff77a8','#ffccaa'].map(hex),
+  gb:['#0f380f','#306230','#8bac0f','#9bbc0f'].map(hex),
+  bw:[[0,0,0],[255,255,255]]
+};
+let img=null;
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;const i=new Image();i.onload=()=>{img=i;run()};i.onerror=()=>$('msg').textContent='이미지를 열 수 없어요.';i.src=URL.createObjectURL(f)};
+['w','k','mode','dith'].forEach(i=>$(i).addEventListener('input',()=>{$('wv').textContent=$('w').value;$('kv').textContent=$('k').value;$('kwrap').style.display=$('mode').value==='auto'?'':'none';if(img)run()}));
+
+function kmeans(px,k){ // px: [[r,g,b],...] (불투명 픽셀만)
+  if(px.length<=k)return px.map(p=>p.slice());
+  const ord=px.map((p,i)=>i).sort((a,b)=>(px[a][0]*3+px[a][1]*6+px[a][2])-(px[b][0]*3+px[b][1]*6+px[b][2]));
+  let c=[];for(let i=0;i<k;i++)c.push(px[ord[Math.floor((i+.5)*px.length/k)]].slice());
+  for(let it=0;it<8;it++){
+    const sum=c.map(()=>[0,0,0,0]);
+    for(const p of px){let b=0,bd=1e9;for(let j=0;j<c.length;j++){const d=(p[0]-c[j][0])**2+(p[1]-c[j][1])**2+(p[2]-c[j][2])**2;if(d<bd){bd=d;b=j}}const s=sum[b];s[0]+=p[0];s[1]+=p[1];s[2]+=p[2];s[3]++}
+    c=c.map((q,j)=>sum[j][3]?[Math.round(sum[j][0]/sum[j][3]),Math.round(sum[j][1]/sum[j][3]),Math.round(sum[j][2]/sum[j][3])]:q);
+  }
+  return c;
+}
+function run(){
+  const W=+$('w').value,H=Math.max(1,Math.round(W*img.naturalHeight/img.naturalWidth));
+  const o=$('out');o.width=W;o.height=H;const x=o.getContext('2d',{willReadFrequently:true});
+  x.clearRect(0,0,W,H);x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(img,0,0,W,H);
+  const im=x.getImageData(0,0,W,H),d=im.data,mode=$('mode').value;
+  let pal=null;
+  if(mode!=='none'){
+    if(mode==='auto'){const px=[];for(let i=0;i<d.length;i+=4)if(d[i+3]>=128)px.push([d[i],d[i+1],d[i+2]]);pal=kmeans(px,+$('k').value)}
+    else pal=PAL[mode];
+    const dith=$('dith').checked,spread=dith?(mode==='bw'?110:mode==='gb'?80:56):0;
+    for(let py=0;py<H;py++)for(let px=0;px<W;px++){
+      const i=(py*W+px)*4;if(d[i+3]<128){d[i+3]=0;continue}d[i+3]=255;
+      const off=spread?(BAYER[py%4][px%4]/16-.47)*spread:0,r=d[i]+off,g=d[i+1]+off,b=d[i+2]+off;
+      let bj=0,bd=1e12;for(let j=0;j<pal.length;j++){const q=pal[j],dd=(r-q[0])**2+(g-q[1])**2+(b-q[2])**2;if(dd<bd){bd=dd;bj=j}}
+      d[i]=pal[bj][0];d[i+1]=pal[bj][1];d[i+2]=pal[bj][2];
+    }
+  }
+  x.putImageData(im,0,0);
+  // 사용된 색 표시
+  const seen=new Map();for(let i=0;i<d.length;i+=4)if(d[i+3]){const h='#'+[d[i],d[i+1],d[i+2]].map(v=>v.toString(16).padStart(2,'0')).join('');seen.set(h,(seen.get(h)||0)+1)}
+  const cols=[...seen.entries()].sort((a,b)=>b[1]-a[1]).slice(0,48);
+  $('sw').innerHTML=cols.map(([h])=>`<i style="background:${h}" title="${h}" data-h="${h}"></i>`).join('');
+  $('info').textContent=`${W}×${H} 도트 · 사용된 색 ${seen.size}개${seen.size>48?' (48개만 표시)':''} · 색을 누르면 코드가 복사돼요`;
+  $('res').hidden=false;$('msg').textContent='';
+}
+$('sw').onclick=async e=>{const i=e.target.closest('i');if(!i)return;try{await navigator.clipboard.writeText(i.dataset.h);$('info').textContent=i.dataset.h+' 복사됨'}catch(err){$('info').textContent=i.dataset.h}};
+$('dl').onclick=()=>{
+  const s=+$('scale').value,src=$('out'),t=document.createElement('canvas');t.width=src.width*s;t.height=src.height*s;const x=t.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(src,0,0,t.width,t.height);
+  t.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`pixelized-${src.width}x${src.height}.png`;a.click()},'image/png');
+};
+</script></body></html>

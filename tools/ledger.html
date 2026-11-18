@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>가계부 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+  .bar .nm{width:76px;flex:none;color:var(--sub)}.bar .tr{flex:1;height:10px;background:#0f1218;border-radius:99px;overflow:hidden}
+  .bar .tr i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px}
+  .bar .v{width:110px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
+  .e{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  .e:last-child{border:0}.e .d{width:44px;color:var(--sub);flex:none}.e .m{flex:1;word-break:break-word}
+  .e .a{font-variant-numeric:tabular-nums;font-weight:600}.inc{color:var(--ok)}.exp{color:#ff7b84}
+  .ib{background:transparent;color:var(--sub);padding:6px;border-radius:8px}
+  .mon{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px}.mon b{font-size:18px;min-width:130px;text-align:center}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#fb923c" data-icon="wallet"></span><div><h1>가계부</h1><p class="desc">수입·지출을 기록하고 월별로 확인해요. 이 브라우저에만 저장돼요.</p></div></div>
+
+<div class="card">
+  <h3>내역 추가</h3>
+  <div class="row">
+    <div><label>날짜</label><input type="date" id="dt"></div>
+    <div><label>구분</label><select id="ty"><option value="exp">지출</option><option value="inc">수입</option></select></div>
+    <div><label>분류</label><select id="ct"></select></div>
+    <div><label>금액 (원)</label><input type="number" id="am" min="0" step="any" placeholder="0"></div>
+  </div>
+  <div class="row" style="margin-top:10px"><input id="me" placeholder="메모 (선택)" maxlength="60" style="flex:3 1 200px"><button class="primary" id="add"><span data-icon="plus"></span>추가</button></div>
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="card">
+  <div class="mon"><button id="pv" style="padding:8px 12px"><span data-icon="back"></span></button><b id="ml"></b><button id="nx" style="padding:8px 12px"><span data-icon="back" style="display:inline-block;transform:scaleX(-1)"></span></button></div>
+  <div class="stats" id="sum"></div>
+  <div id="cats"></div>
+</div>
+
+<div class="card">
+  <h3>내역</h3>
+  <div id="list"></div>
+  <div class="row" style="margin-top:14px"><button id="csv"><span data-icon="download"></span>전체 CSV 저장</button></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='kongbu.ledger.v1';let rows=[];
+try{rows=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}if(!Array.isArray(rows))rows=[];
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(rows))}catch(e){$('msg').textContent='저장 공간이 부족해요'}};
+const CAT={exp:['식비','카페·간식','교통','쇼핑','주거·통신','문화·여가','의료','교육','기타'],inc:['월급','용돈','부수입','기타']};
+const pad=n=>String(n).padStart(2,'0'),won=v=>Math.round(v).toLocaleString('ko-KR')+'원';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const stat=(l,v,c)=>`<div class="st"><b class="${c||''}">${v}</b><span>${l}</span></div>`;
+const t=new Date();let ym=t.getFullYear()+'-'+pad(t.getMonth()+1);
+$('dt').value=t.getFullYear()+'-'+pad(t.getMonth()+1)+'-'+pad(t.getDate());
+function cats(){$('ct').innerHTML=CAT[$('ty').value].map(c=>`<option>${c}</option>`).join('')}
+$('ty').onchange=cats;cats();
+function shift(d){let [y,m]=ym.split('-').map(Number);m+=d;if(m<1){m=12;y--}if(m>12){m=1;y++}ym=y+'-'+pad(m);render()}
+$('pv').onclick=()=>shift(-1);$('nx').onclick=()=>shift(1);
+function render(){
+  const [y,m]=ym.split('-');$('ml').textContent=`${y}년 ${+m}월`;
+  const mine=rows.filter(r=>r.date.startsWith(ym)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:b.id>a.id?1:-1);
+  const inc=mine.filter(r=>r.type==='inc').reduce((s,r)=>s+r.amt,0),exp=mine.filter(r=>r.type==='exp').reduce((s,r)=>s+r.amt,0);
+  $('sum').innerHTML=stat('수입',won(inc),'inc')+stat('지출',won(exp),'exp')+stat('잔액',won(inc-exp));
+  const by={};mine.filter(r=>r.type==='exp').forEach(r=>by[r.cat]=(by[r.cat]||0)+r.amt);
+  const ent=Object.entries(by).sort((a,b)=>b[1]-a[1]),mx=ent.length?ent[0][1]:1;
+  $('cats').innerHTML=ent.length?'<h3 style="margin:18px 0 6px;font-size:14px;color:var(--sub)">지출 분류별</h3>'+ent.map(([k,v])=>`<div class="bar"><span class="nm">${esc(k)}</span><span class="tr"><i style="width:${v/mx*100}%"></i></span><span class="v">${won(v)} <small style="color:var(--sub)">${Math.round(v/exp*100)}%</small></span></div>`).join(''):'';
+  $('list').innerHTML=mine.map(r=>`<div class="e" data-id="${r.id}"><span class="d">${+r.date.slice(8)}일</span><span class="m"><b style="font-weight:600">${esc(r.cat)}</b> <span style="color:var(--sub)">${esc(r.memo||'')}</span></span><span class="a ${r.type}">${r.type==='inc'?'+':'−'}${won(r.amt)}</span><button class="ib" title="삭제"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join('')||'<p class="note">이 달에는 내역이 없어요.</p>';
+}
+$('add').onclick=()=>{
+  const amt=+$('am').value,date=$('dt').value;$('msg').textContent='';
+  if(!date){$('msg').textContent='날짜를 선택해 주세요.';return}
+  if(!(amt>0)){$('msg').textContent='금액을 입력해 주세요.';return}
+  rows.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,4),date,type:$('ty').value,cat:$('ct').value,amt,memo:$('me').value.trim()});
+  persist();$('am').value='';$('me').value='';ym=date.slice(0,7);render();
+};
+$('am').addEventListener('keydown',e=>{if(e.key==='Enter')$('add').click()});
+$('list').onclick=e=>{const b=e.target.closest('.ib');if(!b)return;const id=b.closest('.e').dataset.id;rows=rows.filter(r=>r.id!==id);persist();render()};
+$('csv').onclick=()=>{
+  const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+  const lines=['날짜,구분,분류,금액,메모',...rows.slice().sort((a,b)=>a.date<b.date?-1:1).map(r=>[r.date,r.type==='inc'?'수입':'지출',q(r.cat),r.amt,q(r.memo||'')].join(','))];
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['﻿'+lines.join('\n')],{type:'text/csv;charset=utf-8'}));a.download='가계부.csv';a.click();
+};
+render();
+</script></body></html>

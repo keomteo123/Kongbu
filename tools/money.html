@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>환율·퍼센트·할인 계산기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#10b981" data-icon="coin"></span><div><h1>환율·퍼센트·할인 계산기</h1><p class="desc">환율 변환, 퍼센트 계산, 할인·부가세 계산을 바로.</p></div></div>
+
+<div class="card">
+  <h3>환율 변환</h3>
+  <div class="row">
+    <div><label>금액</label><input type="number" id="fa" value="100" step="any"></div>
+    <div><label>보유 통화</label><select id="ff"></select></div>
+    <button id="fswap" style="margin-top:22px;padding:11px 14px" title="바꾸기"><span data-icon="swap"></span></button>
+    <div><label>바꿀 통화</label><select id="ft"></select></div>
+  </div>
+  <div class="big" id="fres" style="font-size:36px">-</div>
+  <div class="center note" id="finfo">환율 불러오는 중...</div>
+  <div class="row" style="margin-top:10px">
+    <div><label>직접 환율 입력 (1 보유통화 = ? 바꿀통화, 비우면 자동)</label><input type="number" id="fman" step="any" placeholder="예: 1380"></div>
+  </div>
+  <p class="note">시장 기준 참고 환율이에요. 실제 환전·카드 결제 환율과는 달라요.</p>
+</div>
+
+<div class="card">
+  <h3>퍼센트 계산</h3>
+  <div class="row"><div><label>A</label><input type="number" id="p1a" value="200" step="any"></div><div><label>B (%)</label><input type="number" id="p1b" value="15" step="any"></div></div>
+  <div class="note">A의 B%는? → <b id="p1r" style="color:var(--text)"></b></div>
+  <div class="row" style="margin-top:12px"><div><label>A</label><input type="number" id="p2a" value="30" step="any"></div><div><label>B</label><input type="number" id="p2b" value="120" step="any"></div></div>
+  <div class="note">A는 B의 몇 %? → <b id="p2r" style="color:var(--text)"></b></div>
+  <div class="row" style="margin-top:12px"><div><label>처음 값</label><input type="number" id="p3a" value="50000" step="any"></div><div><label>바뀐 값</label><input type="number" id="p3b" value="42000" step="any"></div></div>
+  <div class="note">증감률 → <b id="p3r" style="color:var(--text)"></b></div>
+  <div class="row" style="margin-top:12px"><div><label>값</label><input type="number" id="p4a" value="10000" step="any"></div><div><label>증감 (%, 감소는 −)</label><input type="number" id="p4b" value="-20" step="any"></div></div>
+  <div class="note">적용 결과 → <b id="p4r" style="color:var(--text)"></b></div>
+</div>
+
+<div class="card">
+  <h3>할인 계산</h3>
+  <div class="row">
+    <div><label>정가</label><input type="number" id="dp" value="39000" step="any"></div>
+    <div><label>할인율 (%)</label><input type="number" id="dr" value="30" step="any"></div>
+    <div><label>추가 할인율 (%)</label><input type="number" id="dr2" value="10" step="any"></div>
+    <div><label>쿠폰 (원)</label><input type="number" id="dc" value="0" step="any"></div>
+  </div>
+  <div class="stats" id="dres"></div>
+</div>
+
+<div class="card">
+  <h3>부가세 (10%)</h3>
+  <div class="row">
+    <div><label>금액</label><input type="number" id="vv" value="110000" step="any"></div>
+    <div><label>입력한 금액은</label><select id="vm"><option value="in">부가세 포함(합계)</option><option value="ex">부가세 별도(공급가)</option></select></div>
+  </div>
+  <div class="stats" id="vres"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const nf=(v,d=2)=>isFinite(v)?Number(v.toFixed(d)).toLocaleString('ko-KR',{maximumFractionDigits:d}):'-';
+const stat=(l,v)=>`<div class="st"><b>${v}</b><span>${l}</span></div>`;
+
+/* 환율 */
+const CUR={KRW:'원',USD:'미국 달러',JPY:'일본 엔',EUR:'유로',CNY:'중국 위안',GBP:'영국 파운드',AUD:'호주 달러',CAD:'캐나다 달러',HKD:'홍콩 달러',SGD:'싱가포르 달러',TWD:'대만 달러',THB:'태국 바트',VND:'베트남 동',PHP:'필리핀 페소',IDR:'인도네시아 루피아',MYR:'말레이시아 링깃',CHF:'스위스 프랑',NZD:'뉴질랜드 달러',INR:'인도 루피',AED:'UAE 디르함'};
+Object.keys(CUR).forEach(k=>{$('ff').add(new Option(k+' · '+CUR[k],k));$('ft').add(new Option(k+' · '+CUR[k],k))});
+$('ff').value='USD';$('ft').value='KRW';
+let rates=null,stamp='';
+async function loadRates(){
+  try{const c=JSON.parse(localStorage.getItem('kongbu.fx')||'null');if(c&&Date.now()-c.t<6*36e5){rates=c.r;stamp=c.u;return}}catch(e){}
+  const r=await fetch('https://open.er-api.com/v6/latest/USD');const j=await r.json();
+  if(j.result!=='success')throw new Error('bad');
+  rates=j.rates;stamp=j.time_last_update_utc;
+  try{localStorage.setItem('kongbu.fx',JSON.stringify({t:Date.now(),r:rates,u:stamp}))}catch(e){}
+}
+function fx(){
+  const a=+$('fa').value,f=$('ff').value,t=$('ft').value,man=+$('fman').value;
+  let rate=null;
+  if(man>0)rate=man;else if(rates&&rates[f]&&rates[t])rate=rates[t]/rates[f];
+  if(rate==null||$('fa').value===''){$('fres').textContent='-';return}
+  $('fres').textContent=nf(a*rate,t==='JPY'||t==='KRW'||t==='VND'||t==='IDR'?0:2)+' '+t;
+  $('finfo').textContent=`1 ${f} = ${nf(rate,rate<1?6:4)} ${t}`+(man>0?'  (직접 입력)':stamp?'  ·  기준: '+new Date(stamp).toLocaleString('ko-KR'):'');
+}
+['fa','ff','ft','fman'].forEach(i=>$(i).addEventListener('input',fx));
+$('fswap').onclick=()=>{const a=$('ff').value;$('ff').value=$('ft').value;$('ft').value=a;fx()};
+loadRates().then(fx).catch(()=>{$('finfo').textContent='환율을 불러오지 못했어요. 아래에 환율을 직접 입력해 주세요.'});
+
+/* 퍼센트 */
+function pct(){
+  const v=i=>+$(i).value;
+  $('p1r').textContent=nf(v('p1a')*v('p1b')/100);
+  $('p2r').textContent=v('p2b')?nf(v('p2a')/v('p2b')*100)+' %':'-';
+  const ch=v('p3a')?(v('p3b')-v('p3a'))/Math.abs(v('p3a'))*100:NaN;
+  $('p3r').textContent=isFinite(ch)?(ch>0?'+':'')+nf(ch)+' %  ('+(ch>=0?'+':'')+nf(v('p3b')-v('p3a'))+')':'-';
+  $('p4r').textContent=nf(v('p4a')*(1+v('p4b')/100));
+}
+['p1a','p1b','p2a','p2b','p3a','p3b','p4a','p4b'].forEach(i=>$(i).addEventListener('input',pct));
+
+/* 할인 */
+function disc(){
+  const p=+$('dp').value,r1=+$('dr').value||0,r2=+$('dr2').value||0,c=+$('dc').value||0;
+  const a=p*(1-r1/100),b=a*(1-r2/100),fin=Math.max(0,b-c),save=p-fin;
+  $('dres').innerHTML=stat('최종 가격',nf(fin,0)+'원')+stat('절약 금액',nf(save,0)+'원')+stat('총 할인율',p?nf(save/p*100)+'%':'-')+stat('1차 할인가',nf(a,0)+'원');
+}
+['dp','dr','dr2','dc'].forEach(i=>$(i).addEventListener('input',disc));
+function vat(){
+  const v=+$('vv').value,inc=$('vm').value==='in',sup=inc?v/1.1:v,tax=inc?v-sup:v*.1,tot=inc?v:v*1.1;
+  $('vres').innerHTML=stat('공급가액',nf(sup,0)+'원')+stat('부가세',nf(tax,0)+'원')+stat('합계',nf(tot,0)+'원');
+}
+['vv','vm'].forEach(i=>$(i).addEventListener('input',vat));
+pct();disc();vat();
+</script></body></html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>메모장 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .pane{display:flex;gap:14px;flex-wrap:wrap}
+  .side{flex:1 1 220px;max-height:460px;overflow:auto}
+  .edit{flex:2 1 320px}
+  .edit textarea{min-height:380px;font-family:inherit;line-height:1.7}
+  .n{padding:10px 12px;border-radius:12px;cursor:pointer;border:1px solid transparent;margin-bottom:4px}
+  .n:hover{background:#0f1218}.n.on{background:#0f1218;border-color:var(--accent)}
+  .n b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .n small{color:var(--sub);font-size:12px}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#fbbf24" data-icon="note"></span><div><h1>메모장</h1><p class="desc">쓰는 즉시 자동 저장돼요. 내용은 이 브라우저에만 저장되고 서버로 가지 않아요.</p></div></div>
+<div class="card">
+  <div class="row" style="margin-bottom:12px">
+    <input id="q" placeholder="메모 검색">
+    <button class="primary" id="new"><span data-icon="plus"></span>새 메모</button>
+  </div>
+  <div class="pane">
+    <div class="side" id="list"></div>
+    <div class="edit">
+      <textarea id="ed" placeholder="여기에 메모를 쓰세요" spellcheck="false"></textarea>
+      <div class="row" style="margin-top:10px">
+        <span class="note" id="info" style="flex:1;margin:0"></span>
+        <button id="dl"><span data-icon="download"></span>txt 저장</button>
+        <button id="del"><span data-icon="trash"></span>삭제</button>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="note">브라우저 사이트 데이터를 지우면 메모도 같이 지워져요. 중요한 메모는 txt로 저장해 두세요.</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='kongbu.memo.v1';
+let notes=[],sel=null,timer=null;
+try{notes=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){}
+if(!Array.isArray(notes))notes=[];
+const persist=()=>{try{localStorage.setItem(KEY,JSON.stringify(notes))}catch(e){$('info').textContent='저장 공간이 부족해요'}};
+const title=n=>((n.text||'').split('\n').find(l=>l.trim())||'새 메모').trim().slice(0,40);
+const when=t=>new Date(t).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){
+  const q=$('q').value.trim().toLowerCase();
+  const vis=notes.filter(n=>!q||(n.text||'').toLowerCase().includes(q)).sort((a,b)=>b.t-a.t);
+  $('list').innerHTML=vis.map(n=>`<div class="n${n.id===sel?' on':''}" data-id="${n.id}"><b>${esc(title(n))}</b><small>${when(n.t)}</small></div>`).join('')||'<p class="note">메모가 없어요.</p>';
+}
+function open(id){
+  const n=notes.find(x=>x.id===id);if(!n)return;sel=id;$('ed').value=n.text;stat();render();
+}
+function stat(){const n=notes.find(x=>x.id===sel);$('info').textContent=n?`${[...(n.text||'')].length}자 · 마지막 저장 ${when(n.t)}`:''}
+function add(){const n={id:Date.now().toString(36),text:'',t:Date.now()};notes.push(n);persist();open(n.id);$('ed').focus()}
+$('new').onclick=add;
+$('list').onclick=e=>{const d=e.target.closest('.n');if(d)open(d.dataset.id)};
+$('ed').addEventListener('input',()=>{
+  const n=notes.find(x=>x.id===sel);if(!n)return;n.text=$('ed').value;n.t=Date.now();
+  $('info').textContent='저장 중...';clearTimeout(timer);timer=setTimeout(()=>{persist();stat();render()},300);
+});
+$('q').oninput=render;
+$('del').onclick=()=>{
+  const n=notes.find(x=>x.id===sel);if(!n)return;
+  if(n.text.trim()&&!confirm('이 메모를 삭제할까요?'))return;
+  notes=notes.filter(x=>x.id!==sel);persist();sel=null;$('ed').value='';
+  if(notes.length)open(notes.sort((a,b)=>b.t-a.t)[0].id);else add();
+};
+$('dl').onclick=()=>{
+  const n=notes.find(x=>x.id===sel);if(!n)return;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([n.text],{type:'text/plain;charset=utf-8'}));
+  a.download=(title(n).replace(/[\\/:*?"<>|]/g,'_')||'memo')+'.txt';a.click();
+};
+if(!notes.length)add();else open(notes.sort((a,b)=>b.t-a.t)[0].id);
+</script></body></html>

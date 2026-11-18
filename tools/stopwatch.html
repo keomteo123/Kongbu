@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스톱워치·세계 시계 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<style>
+  .lap{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-size:15px}
+  .lap.best{color:var(--ok)}.lap.worst{color:#ff7b84}
+  .clock{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .clock:last-child{border:0}.clock .t{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .clock small{color:var(--sub)}
+  .x{background:transparent;color:var(--sub);padding:6px;border-radius:8px}
+</style></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#38bdf8" data-icon="clock"></span><div><h1>스톱워치·세계 시계</h1><p class="desc">랩 타임을 기록하는 스톱워치와, 도시별 현재 시각.</p></div></div>
+
+<div class="card center">
+  <h3 style="text-align:left">스톱워치</h3>
+  <div class="big" id="sw" style="font-size:clamp(44px,12vw,68px)">00:00.00</div>
+  <div class="row" style="justify-content:center">
+    <button class="primary" id="s1">시작</button><button id="s2" disabled>랩</button><button id="s3">초기화</button>
+  </div>
+  <div id="laps" style="margin-top:14px;text-align:left"></div>
+</div>
+
+<div class="card">
+  <h3>세계 시계</h3>
+  <div class="row"><select id="tzsel"></select><button id="tzadd" class="primary"><span data-icon="plus"></span>추가</button></div>
+  <div id="clocks" style="margin-top:8px"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+/* ---------- 스톱워치 ---------- */
+let acc=0,t0=0,run=false,raf=0,laps=[];
+const f2=n=>String(n).padStart(2,'0');
+function fmt(ms){const c=Math.floor(ms/10)%100,s=Math.floor(ms/1000)%60,m=Math.floor(ms/60000)%60,h=Math.floor(ms/3600000);return (h?h+':'+f2(m):f2(m))+':'+f2(s)+'.'+f2(c)}
+const cur=()=>acc+(run?performance.now()-t0:0);
+function tick(){$('sw').textContent=fmt(cur());if(run)raf=requestAnimationFrame(tick)}
+$('s1').onclick=()=>{
+  if(run){acc=cur();run=false;cancelAnimationFrame(raf);$('s1').textContent='계속';$('s2').disabled=true;$('sw').textContent=fmt(acc)}
+  else{t0=performance.now();run=true;$('s1').textContent='정지';$('s2').disabled=false;tick()}
+};
+$('s2').onclick=()=>{laps.push(cur());drawLaps()};
+$('s3').onclick=()=>{run=false;cancelAnimationFrame(raf);acc=0;laps=[];$('s1').textContent='시작';$('s2').disabled=true;$('sw').textContent='00:00.00';drawLaps()};
+function drawLaps(){
+  const parts=laps.map((t,i)=>t-(i?laps[i-1]:0));
+  const best=Math.min(...parts),worst=Math.max(...parts);
+  $('laps').innerHTML=parts.map((p,i)=>{const cls=laps.length>=3?(p===best?' best':p===worst?' worst':''):'';return `<div class="lap${cls}"><span>랩 ${i+1}</span><span>${fmt(p)}</span><span style="color:var(--sub)">${fmt(laps[i])}</span></div>`}).reverse().join('');
+}
+
+/* ---------- 세계 시계 ---------- */
+const TZ=[['Asia/Seoul','서울'],['Asia/Tokyo','도쿄'],['Asia/Shanghai','베이징·상하이'],['Asia/Taipei','타이베이'],['Asia/Hong_Kong','홍콩'],['Asia/Singapore','싱가포르'],['Asia/Bangkok','방콕'],['Asia/Ho_Chi_Minh','호치민'],['Asia/Kolkata','뭄바이·델리'],['Asia/Dubai','두바이'],['Europe/Moscow','모스크바'],['Europe/Istanbul','이스탄불'],['Europe/Paris','파리·베를린'],['Europe/London','런던'],['UTC','UTC'],['America/Sao_Paulo','상파울루'],['America/New_York','뉴욕'],['America/Chicago','시카고'],['America/Denver','덴버'],['America/Los_Angeles','로스앤젤레스'],['America/Anchorage','앵커리지'],['Pacific/Honolulu','호놀룰루'],['Australia/Sydney','시드니'],['Pacific/Auckland','오클랜드']];
+TZ.forEach(([z,n])=>$('tzsel').add(new Option(n+'  ('+z+')',z)));
+let list=['Asia/Seoul','America/New_York','Europe/London','Asia/Tokyo'];
+try{const s=JSON.parse(localStorage.getItem('kongbu.clocks')||'null');if(Array.isArray(s)&&s.length)list=s.filter(z=>TZ.some(t=>t[0]===z))}catch(e){}
+const save=()=>{try{localStorage.setItem('kongbu.clocks',JSON.stringify(list))}catch(e){}};
+function off(tz,d){const f=new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric'});const o={};f.formatToParts(d).forEach(p=>o[p.type]=+p.value);return (Date.UTC(o.year,o.month-1,o.day,o.hour,o.minute,o.second)-Math.floor(d.getTime()/1000)*1000)/60000}
+function clocks(){
+  const d=new Date(),loc=-d.getTimezoneOffset();
+  $('clocks').innerHTML=list.map(z=>{
+    const nm=(TZ.find(t=>t[0]===z)||[0,z])[1],diff=(off(z,d)-loc)/60;
+    const time=d.toLocaleTimeString('ko-KR',{timeZone:z,hourCycle:'h23'}),date=d.toLocaleDateString('ko-KR',{timeZone:z,month:'long',day:'numeric',weekday:'short'});
+    const rel=diff===0?'내 시간과 같아요':'내 시간보다 '+(diff>0?'+':'')+(Number.isInteger(diff)?diff:diff.toFixed(1))+'시간';
+    return `<div class="clock"><div><b>${nm}</b><br><small>${date} · ${rel}</small></div><div style="display:flex;align-items:center;gap:6px"><span class="t">${time}</span><button class="x" data-z="${z}" title="삭제"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>`;
+  }).join('')||'<p class="note">도시를 추가해 보세요.</p>';
+}
+$('clocks').onclick=e=>{const b=e.target.closest('button[data-z]');if(b){list=list.filter(z=>z!==b.dataset.z);save();clocks()}};
+$('tzadd').onclick=()=>{const z=$('tzsel').value;if(!list.includes(z)){list.push(z);save();clocks()}};
+clocks();setInterval(clocks,1000);
+</script></body></html>
