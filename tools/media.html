@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>오디오·영상 변환/자르기 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🎞️ 오디오 · 영상 변환 / 자르기</h1>
+<p class="desc">mp3, wav, mp4, webm, gif 등으로 변환하고 구간을 잘라요. 내 브라우저 안에서 처리하고, 처음 한 번 변환 엔진(약 30MB)을 내려받아요. 큰 파일은 느릴 수 있어요.</p>
+<div class="card">
+  <input type="file" id="file" accept="audio/*,video/*">
+  <div class="row">
+    <div><label>변환 형식</label>
+      <select id="fmt">
+        <option value="mp3">mp3 (오디오)</option><option value="wav">wav (오디오)</option><option value="m4a">m4a (오디오)</option><option value="ogg">ogg (오디오)</option>
+        <option value="mp4">mp4 (영상)</option><option value="webm">webm (영상)</option><option value="gif">gif (움짤)</option>
+      </select></div>
+    <div><label>시작(초, 선택)</label><input type="number" id="ss" min="0" step="0.1" placeholder="0"></div>
+    <div><label>길이(초, 선택)</label><input type="number" id="dur" min="0" step="0.1" placeholder="끝까지"></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="go" disabled>변환하기</button></div>
+  <div class="msg" id="msg"></div>
+</div>
+<div class="card" id="out" hidden></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let ff=null;
+const args={
+  mp3:['-vn','-c:a','libmp3lame','-q:a','2'],
+  wav:['-vn','-c:a','pcm_s16le'],
+  m4a:['-vn','-c:a','aac','-b:a','192k'],
+  ogg:['-vn','-c:a','libvorbis','-q:a','5'],
+  mp4:['-c:v','libx264','-preset','veryfast','-crf','28','-c:a','aac','-pix_fmt','yuv420p'],
+  webm:['-c:v','libvpx','-b:v','1M','-c:a','libvorbis'],
+  gif:['-vf','fps=12,scale=480:-1:flags=lanczos','-an']
+};
+$('file').onchange=()=>$('go').disabled=!$('file').files.length;
+async function getFF(){
+  if(ff)return ff;
+  if(typeof FFmpegWASM==='undefined'||typeof FFmpegUtil==='undefined')throw new Error('변환 엔진을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
+  const {FFmpeg}=FFmpegWASM,{toBlobURL}=FFmpegUtil;
+  const f=new FFmpeg();
+  f.on('progress',({progress})=>{$('msg').textContent='변환 중... '+Math.min(100,Math.round(progress*100))+'%'});
+  const base='https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+  await f.load({
+    coreURL:await toBlobURL(base+'/ffmpeg-core.js','text/javascript'),
+    wasmURL:await toBlobURL(base+'/ffmpeg-core.wasm','application/wasm'),
+    classWorkerURL:await toBlobURL('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js','text/javascript')
+  });
+  return ff=f;
+}
+$('go').onclick=async()=>{
+  const file=$('file').files[0];if(!file)return;
+  $('go').disabled=true;$('out').hidden=true;$('msg').className='msg';$('msg').textContent='변환 엔진 불러오는 중...';
+  try{
+    const f=await getFF(),fmt=$('fmt').value;
+    const inName='in_'+file.name.replace(/[^\w.]/g,'_'),outName='out.'+fmt;
+    await f.writeFile(inName,new Uint8Array(await file.arrayBuffer()));
+    const cmd=[];
+    if($('ss').value)cmd.push('-ss',$('ss').value);
+    cmd.push('-i',inName);
+    if($('dur').value)cmd.push('-t',$('dur').value);
+    cmd.push(...args[fmt],outName);
+    const code=await f.exec(cmd);
+    if(code!==0)throw new Error('변환에 실패했어요. 이 파일/형식 조합은 지원되지 않을 수 있어요.');
+    const data=await f.readFile(outName);
+    const mime={mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg',mp4:'video/mp4',webm:'video/webm',gif:'image/gif'}[fmt];
+    const blob=new Blob([data.buffer],{type:mime}),url=URL.createObjectURL(blob);
+    const name=file.name.replace(/\.[^.]+$/,'')+'.'+fmt;
+    $('out').hidden=false;
+    $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(blob.size/1048576).toFixed(2)}MB</span><a class="btn primary" href="${url}" download="${name}">⬇ 다운로드</a></div>`;
+    $('msg').className='msg ok';$('msg').textContent='완료!';
+    await f.deleteFile(inName);await f.deleteFile(outName);
+  }catch(e){$('msg').textContent=e.message||String(e)}
+  $('go').disabled=false;
+};
+</script></body></html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>이미지 변환·압축 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🖼️ 이미지 변환 · 압축 · 리사이즈</h1>
+<p class="desc">PNG / JPG / WebP로 변환하고 크기·용량을 줄여요. 여러 장 한 번에 가능. (HEIC는 브라우저에 따라 열리지 않을 수 있어요)</p>
+<div class="card">
+  <div class="drop" id="drop">여기에 이미지를 끌어놓거나 클릭해서 선택</div>
+  <input type="file" id="file" accept="image/*" multiple hidden>
+  <div class="row">
+    <div><label>변환 형식</label><select id="fmt"><option value="image/jpeg">JPG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div>
+    <div><label>품질 (JPG/WebP) <span id="qv">85</span>%</label><input type="range" id="q" min="10" max="100" value="85"></div>
+    <div><label>최대 가로(px, 비우면 원본)</label><input type="number" id="w" min="1" placeholder="예: 1280"></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="go" disabled>변환하기</button></div>
+  <div class="msg" id="msg"></div>
+</div>
+<div class="card" id="out" hidden></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);let files=[];
+$('drop').onclick=()=>$('file').click();
+$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('over')};
+$('drop').ondragleave=()=>$('drop').classList.remove('over');
+$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('over');set([...e.dataTransfer.files])};
+$('file').onchange=e=>set([...e.target.files]);
+$('q').oninput=()=>$('qv').textContent=$('q').value;
+function set(f){files=f.filter(x=>x.type.startsWith('image/'));$('drop').textContent=files.length?`${files.length}장 선택됨`:'이미지 파일이 아니에요';$('go').disabled=!files.length}
+const load=f=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=URL.createObjectURL(f)});
+$('go').onclick=async()=>{
+  const type=$('fmt').value,ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[type];
+  const mw=parseInt($('w').value)||0,q=$('q').value/100;
+  $('out').hidden=false;$('out').innerHTML='';$('msg').textContent='';
+  for(const f of files){
+    try{
+      const img=await load(f);let w=img.naturalWidth,h=img.naturalHeight;
+      if(mw&&w>mw){h=Math.round(h*mw/w);w=mw}
+      const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');
+      if(type==='image/jpeg'){x.fillStyle='#fff';x.fillRect(0,0,w,h)}
+      x.drawImage(img,0,0,w,h);
+      const blob=await new Promise(r=>c.toBlob(r,type,q));
+      const url=URL.createObjectURL(blob),name=f.name.replace(/\.[^.]+$/,'')+'.'+ext;
+      const d=document.createElement('div');d.className='item';
+      d.innerHTML=`<span>${name}<br><small style="color:var(--sub)">${(f.size/1024).toFixed(0)}KB → ${(blob.size/1024).toFixed(0)}KB · ${w}×${h}</small></span><a class="btn primary" href="${url}" download="${name}">⬇</a>`;
+      $('out').appendChild(d);
+    }catch(e){const d=document.createElement('div');d.className='item';d.textContent=f.name+' : 열 수 없는 형식이에요';$('out').appendChild(d)}
+  }
+};
+</script></body></html>

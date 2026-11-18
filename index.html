@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kongbu · 편리한 도구 모음</title>
+<meta name="description" content="녹음, 화면 녹화, 이미지 변환, QR, PDF 등 브라우저에서 바로 쓰는 도구 모음. 파일은 서버로 보내지 않아요.">
+<link rel="stylesheet" href="style.css">
+<style>
+  .hero{padding:24px 0 8px}
+  .hero h1{font-size:34px}
+  .badge{display:inline-block;background:#12301f;color:#3dd68c;border-radius:999px;padding:4px 12px;font-size:13px;margin-top:6px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:20px}
+  .tool{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:var(--text);display:block;transition:.15s}
+  .tool:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .tool .ic{font-size:30px}
+  .tool b{display:block;margin:8px 0 4px}
+  .tool span{color:var(--sub);font-size:13px}
+  footer{color:var(--sub);font-size:13px;text-align:center;margin:36px 0 10px}
+  #none{display:none;text-align:center;color:var(--sub);margin-top:24px}
+</style></head>
+<body><main>
+<div class="hero">
+  <h1>🧰 Kongbu</h1>
+  <p class="desc" style="font-size:16px">설치 없이 브라우저에서 바로 쓰는 편리한 도구 모음</p>
+  <span class="badge">🔒 파일은 내 브라우저 안에서만 처리돼요</span>
+</div>
+<input id="q" placeholder="도구 검색 (예: 녹음, pdf, 변환)" style="margin-top:16px">
+<div class="grid" id="grid">
+  <a class="tool" href="tools/recorder.html" data-k="녹음 마이크 음성 recorder"><div class="ic">🎙️</div><b>녹음기</b><span>마이크 녹음 후 바로 다운로드</span></a>
+  <a class="tool" href="tools/screen.html" data-k="화면 녹화 스크린 screen record"><div class="ic">🖥️</div><b>화면 녹화</b><span>화면과 소리를 영상으로 저장</span></a>
+  <a class="tool" href="tools/image.html" data-k="이미지 사진 변환 압축 리사이즈 png jpg webp"><div class="ic">🖼️</div><b>이미지 변환·압축</b><span>PNG/JPG/WebP 변환, 용량 줄이기</span></a>
+  <a class="tool" href="tools/media.html" data-k="오디오 영상 변환 자르기 mp3 mp4 gif wav"><div class="ic">🎞️</div><b>오디오·영상 변환</b><span>mp3, mp4, gif 변환과 자르기</span></a>
+  <a class="tool" href="tools/pdf.html" data-k="pdf 합치기 나누기 이미지"><div class="ic">📄</div><b>PDF 도구</b><span>이미지→PDF, 합치기, 나누기</span></a>
+  <a class="tool" href="tools/qr.html" data-k="qr 큐알 코드"><div class="ic">▦</div><b>QR 코드</b><span>링크를 QR 이미지로</span></a>
+  <a class="tool" href="tools/text.html" data-k="텍스트 글자수 json 정리"><div class="ic">📝</div><b>텍스트·JSON</b><span>글자수 세기, JSON 정리</span></a>
+  <a class="tool" href="tools/color.html" data-k="색상 컬러 팔레트 추출 color"><div class="ic">🎨</div><b>색상 추출</b><span>이미지에서 팔레트 뽑기</span></a>
+  <a class="tool" href="tools/timer.html" data-k="타이머 뽀모도로 시간 공부"><div class="ic">⏱️</div><b>타이머·뽀모도로</b><span>집중 시간 관리</span></a>
+  <a class="tool" href="tools/random.html" data-k="랜덤 추첨 뽑기 팀 주사위 동전"><div class="ic">🎲</div><b>랜덤 추첨</b><span>뽑기, 팀 나누기, 주사위</span></a>
+  <a class="tool" href="tools/rename.html" data-k="이름 확장자 변경 일괄 파일명 rename"><div class="ic">🏷️</div><b>이름·확장자 변경</b><span>여러 파일 이름 한 번에</span></a>
+</div>
+<div id="none">찾는 도구가 없어요 😢</div>
+<footer>© Kongbu · 만들고 싶은 도구가 생기면 카드 한 줄만 추가하면 돼요</footer>
+</main>
+<script>
+const q=document.getElementById('q'),cards=[...document.querySelectorAll('.tool')];
+q.addEventListener('input',()=>{
+  const v=q.value.trim().toLowerCase();let n=0;
+  cards.forEach(c=>{const hit=!v||(c.textContent+' '+c.dataset.k).toLowerCase().includes(v);c.style.display=hit?'':'none';if(hit)n++});
+  document.getElementById('none').style.display=n?'none':'block';
+});
+</script></body></html>

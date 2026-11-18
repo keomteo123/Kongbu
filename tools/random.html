@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>랜덤 추첨 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🎲 랜덤 추첨</h1>
+<p class="desc">이름 뽑기, 팀 나누기, 숫자 뽑기.</p>
+
+<div class="card">
+  <h3 style="margin-top:0">목록에서 뽑기 / 팀 나누기</h3>
+  <label>한 줄에 하나씩 입력</label>
+  <textarea id="list" style="font-family:inherit" placeholder="철수&#10;영희&#10;민수&#10;지민"></textarea>
+  <div class="row" style="margin-top:10px">
+    <div><label>뽑을 개수</label><input type="number" id="n" min="1" value="1"></div>
+    <div><label>팀 수</label><input type="number" id="teams" min="2" value="2"></div>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <button class="primary" id="pick">🎯 뽑기</button>
+    <button id="team">👥 팀 나누기</button>
+  </div>
+  <div class="big" id="res" style="font-size:32px"></div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">숫자 뽑기</h3>
+  <div class="row">
+    <div><label>최소</label><input type="number" id="min" value="1"></div>
+    <div><label>최대</label><input type="number" id="max" value="100"></div>
+    <button class="primary" id="num">뽑기</button>
+  </div>
+  <div class="big" id="numres"></div>
+</div>
+<div class="card center">
+  <button id="coin">🪙 동전 던지기</button> <button id="dice">🎲 주사위</button>
+  <div class="big" id="misc" style="font-size:40px"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+// 균등한 난수 (crypto)
+function rnd(n){const a=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;do{crypto.getRandomValues(a)}while(a[0]>=lim);return a[0]%n}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a}
+const items=()=>$('list').value.split('\n').map(s=>s.trim()).filter(Boolean);
+$('pick').onclick=()=>{
+  const a=items();if(!a.length){$('res').textContent='목록을 입력해 주세요';return}
+  const n=Math.min(Math.max(1,+$('n').value||1),a.length);
+  $('res').textContent='🎉 '+shuffle(a).slice(0,n).join(', ');
+};
+$('team').onclick=()=>{
+  const a=items(),k=Math.max(2,+$('teams').value||2);if(a.length<2){$('res').textContent='2명 이상 입력해 주세요';return}
+  const t=Array.from({length:k},()=>[]);shuffle(a).forEach((v,i)=>t[i%k].push(v));
+  $('res').innerHTML=t.map((m,i)=>`<div style="font-size:16px;margin:6px 0"><b>${i+1}팀</b> ${m.map(s=>s.replace(/[<>&]/g,'')).join(', ')}</div>`).join('');
+};
+$('num').onclick=()=>{
+  let a=parseInt($('min').value),b=parseInt($('max').value);if(isNaN(a)||isNaN(b)){return}
+  if(a>b)[a,b]=[b,a];$('numres').textContent=a+rnd(b-a+1);
+};
+$('coin').onclick=()=>$('misc').textContent=rnd(2)?'앞면 🙂':'뒷면 🪙';
+$('dice').onclick=()=>$('misc').textContent='🎲 '+(rnd(6)+1);
+</script></body></html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>이름·확장자 일괄 변경 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🏷️ 파일 이름 · 확장자 일괄 변경</h1>
+<p class="desc">여러 파일의 이름과 확장자를 한 번에 바꿔 저장해요. 내용은 그대로이고 이름만 바뀌어요. (실제 형식 변환은 이미지/미디어 도구를 쓰세요)</p>
+<div class="card">
+  <input type="file" id="file" multiple>
+  <div class="row">
+    <div><label>새 이름 (비우면 원래 이름 유지)</label><input id="base" placeholder="예: 여행사진"></div>
+    <div><label>번호 붙이기</label><select id="num"><option value="1">여러 개면 번호 붙임 (001, 002…)</option><option value="0">붙이지 않음</option></select></div>
+  </div>
+  <div class="row">
+    <div><label>앞에 붙일 글자</label><input id="pre"></div>
+    <div><label>뒤에 붙일 글자</label><input id="suf"></div>
+    <div><label>새 확장자 (비우면 유지)</label><input id="ext" placeholder="예: txt"></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="all" disabled>전부 다운로드</button></div>
+  <div class="note">여러 파일을 받을 때 브라우저가 "여러 파일 다운로드 허용"을 물어볼 수 있어요.</div>
+</div>
+<div class="card" id="out" hidden></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);let files=[],names=[];
+const bad=/[\\/:*?"<>|]/g;
+function compute(){
+  const n=files.length,pad=String(n).length<3?3:String(n).length;
+  names=files.map((f,i)=>{
+    const m=f.name.match(/^(.*?)(\.[^.]*)?$/),stem=m[1],oldExt=(m[2]||'').slice(1);
+    let base=$('base').value.trim()||stem;
+    if($('base').value.trim()&&$('num').value==='1'&&n>1)base+='_'+String(i+1).padStart(pad,'0');
+    const ext=($('ext').value.trim().replace(/^\./,''))||oldExt;
+    return ($('pre').value+base+$('suf').value).replace(bad,'_')+(ext?'.'+ext.replace(bad,''):'');
+  });
+  $('out').hidden=!n;$('out').innerHTML='';
+  files.forEach((f,i)=>{const d=document.createElement('div');d.className='item';
+    d.innerHTML=`<span><small style="color:var(--sub)"></small><br><b></b></span><button>⬇</button>`;
+    d.querySelector('small').textContent=f.name;d.querySelector('b').textContent=names[i];
+    d.querySelector('button').onclick=()=>save(i);$('out').appendChild(d)});
+  $('all').disabled=!n;
+}
+function save(i){const a=document.createElement('a');a.href=URL.createObjectURL(files[i]);a.download=names[i];document.body.appendChild(a);a.click();a.remove()}
+$('file').onchange=e=>{files=[...e.target.files];compute()};
+['base','num','pre','suf','ext'].forEach(i=>$(i).addEventListener('input',compute));
+$('all').onclick=async()=>{for(let i=0;i<files.length;i++){save(i);await new Promise(r=>setTimeout(r,300))}};
+</script></body></html>

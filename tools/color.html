@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>색상 추출 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🎨 색상 추출</h1>
+<p class="desc">이미지에서 주요 색상 팔레트를 뽑고, 이미지를 클릭해 원하는 색을 찍을 수 있어요. 색을 누르면 코드가 복사돼요.</p>
+<div class="card">
+  <input type="file" id="file" accept="image/*">
+  <div class="center" style="margin-top:14px"><canvas id="c" class="preview" style="cursor:crosshair"></canvas></div>
+  <div id="pal" class="center" style="margin-top:10px"></div>
+  <div class="row" style="margin-top:10px">
+    <div><label>찍은 색</label><div class="row"><input type="color" id="pick" value="#ffffff" style="max-width:70px"><input id="hex" readonly></div></div>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const c=$('c'),x=c.getContext('2d',{willReadFrequently:true});
+const hex=(r,g,b)=>'#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+async function copy(h){$('hex').value=h;$('pick').value=h;try{await navigator.clipboard.writeText(h);$('msg').className='msg ok';$('msg').textContent=h+' 복사됨'}catch(e){$('msg').textContent=h}}
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const i=new Image();i.onload=()=>{
+    const s=Math.min(1,700/i.naturalWidth);c.width=Math.round(i.naturalWidth*s);c.height=Math.round(i.naturalHeight*s);
+    x.drawImage(i,0,0,c.width,c.height);palette();
+  };i.onerror=()=>{$('msg').textContent='이미지를 열 수 없어요.'};i.src=URL.createObjectURL(f);
+};
+function palette(){
+  const d=x.getImageData(0,0,c.width,c.height).data,map={};
+  for(let k=0;k<d.length;k+=16){ // 4픽셀마다 샘플
+    if(d[k+3]<128)continue;
+    const r=d[k]>>5,g=d[k+1]>>5,b=d[k+2]>>5,key=r*64+g*8+b;
+    const m=map[key]||(map[key]={n:0,r:0,g:0,b:0});m.n++;m.r+=d[k];m.g+=d[k+1];m.b+=d[k+2];
+  }
+  const arr=Object.values(map).sort((a,b)=>b.n-a.n),picked=[];
+  for(const m of arr){
+    const col=[Math.round(m.r/m.n),Math.round(m.g/m.n),Math.round(m.b/m.n)];
+    if(picked.every(p=>Math.hypot(p[0]-col[0],p[1]-col[1],p[2]-col[2])>50))picked.push(col);
+    if(picked.length>=8)break;
+  }
+  $('pal').innerHTML='';
+  picked.forEach(col=>{const h=hex(...col),s=document.createElement('div');s.className='swatch';s.innerHTML=`<i style="background:${h}"></i>${h}`;s.onclick=()=>copy(h);$('pal').appendChild(s)});
+}
+c.onclick=e=>{
+  const r=c.getBoundingClientRect(),px=Math.floor((e.clientX-r.left)*c.width/r.width),py=Math.floor((e.clientY-r.top)*c.height/r.height);
+  const d=x.getImageData(px,py,1,1).data;copy(hex(d[0],d[1],d[2]));
+};
+</script></body></html>

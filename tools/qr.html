@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR 코드 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>▦ QR 코드 만들기</h1>
+<p class="desc">링크나 텍스트를 QR 코드 이미지(PNG)로.</p>
+<div class="card">
+  <label>내용 (링크, 글자 등)</label>
+  <textarea id="t" style="min-height:80px;font-family:inherit" placeholder="https://..."></textarea>
+  <div class="row">
+    <div><label>QR 색</label><input type="color" id="fg" value="#000000"></div>
+    <div><label>배경 색</label><input type="color" id="bg" value="#ffffff"></div>
+    <div><label>크기</label><select id="sz"><option value="6">작게</option><option value="10" selected>보통</option><option value="16">크게</option></select></div>
+  </div>
+  <div class="center" style="margin-top:16px"><canvas id="c" class="preview"></canvas></div>
+  <div class="row" style="justify-content:center;margin-top:12px"><button class="primary" id="dl" disabled>⬇ PNG 다운로드</button></div>
+  <div class="msg" id="msg"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function draw(){
+  const text=$('t').value;const c=$('c'),x=c.getContext('2d');
+  if(!text){c.width=c.height=0;$('dl').disabled=true;return}
+  if(typeof qrcode==='undefined'){$('msg').textContent='QR 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.';return}
+  try{
+    const q=qrcode(0,'M');q.addData(text);q.make();
+    const n=q.getModuleCount(),s=parseInt($('sz').value),m=4,size=(n+m*2)*s;
+    c.width=c.height=size;x.fillStyle=$('bg').value;x.fillRect(0,0,size,size);x.fillStyle=$('fg').value;
+    for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))x.fillRect((k+m)*s,(r+m)*s,s,s);
+    $('dl').disabled=false;$('msg').textContent='';
+  }catch(e){$('msg').textContent='내용이 너무 길어요.'}
+}
+['t','fg','bg','sz'].forEach(i=>$(i).addEventListener('input',draw));
+$('dl').onclick=()=>{const a=document.createElement('a');a.href=$('c').toDataURL('image/png');a.download='qr.png';a.click()};
+</script></body></html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>텍스트 · JSON 도구 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>📝 텍스트 · JSON 도구</h1>
+<p class="desc">글자수 세기, JSON 정리/검사.</p>
+
+<div class="card">
+  <h3 style="margin-top:0">글자수 세기</h3>
+  <textarea id="t" style="font-family:inherit" placeholder="여기에 글을 붙여넣으세요"></textarea>
+  <div class="row" style="margin-top:10px;text-align:center">
+    <div><b id="c1">0</b><br><small style="color:var(--sub)">글자(공백 포함)</small></div>
+    <div><b id="c2">0</b><br><small style="color:var(--sub)">글자(공백 제외)</small></div>
+    <div><b id="c3">0</b><br><small style="color:var(--sub)">단어</small></div>
+    <div><b id="c4">0</b><br><small style="color:var(--sub)">줄</small></div>
+    <div><b id="c5">0</b><br><small style="color:var(--sub)">바이트(UTF-8)</small></div>
+  </div>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0">JSON 정리 / 검사</h3>
+  <textarea id="j" placeholder='{"a":1,"b":[1,2,3]}'></textarea>
+  <div class="row" style="margin-top:10px">
+    <button class="primary" id="pretty">보기 좋게</button>
+    <button id="mini">한 줄로</button>
+    <button id="copy">복사</button>
+  </div>
+  <div class="msg" id="msg"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+$('t').oninput=()=>{
+  const s=$('t').value;
+  $('c1').textContent=[...s].length;
+  $('c2').textContent=[...s.replace(/\s/g,'')].length;
+  $('c3').textContent=(s.trim().match(/\S+/g)||[]).length;
+  $('c4').textContent=s?s.split('\n').length:0;
+  $('c5').textContent=new TextEncoder().encode(s).length;
+};
+function run(ind){
+  try{$('j').value=JSON.stringify(JSON.parse($('j').value),null,ind);$('msg').className='msg ok';$('msg').textContent='올바른 JSON이에요.'}
+  catch(e){$('msg').className='msg';$('msg').textContent='JSON 오류: '+e.message}
+}
+$('pretty').onclick=()=>run(2);$('mini').onclick=()=>run(0);
+$('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('j').value);$('msg').className='msg ok';$('msg').textContent='복사했어요.'}catch(e){$('j').select();document.execCommand('copy')}};
+</script></body></html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화면 녹화 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🖥️ 화면 녹화</h1>
+<p class="desc">화면(탭/창/전체)을 녹화해서 다운로드. PC 브라우저에서 동작해요.</p>
+<div class="card">
+  <label><input type="checkbox" id="sys" checked> 시스템 소리 포함 (공유 창에서 허용 시)</label>
+  <label><input type="checkbox" id="mic"> 마이크 소리 포함</label>
+  <div class="row" style="margin-top:14px">
+    <button id="go" class="red">● 화면 녹화 시작</button>
+  </div>
+  <div class="big" id="time">00:00</div>
+  <div class="msg" id="msg"></div>
+</div>
+<div id="list"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let rec,streams=[],chunks=[],t0,timer,count=0;
+const fmt=s=>{s=Math.floor(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
+async function start(){
+  $('msg').textContent='';
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia){$('msg').textContent='이 브라우저는 화면 녹화를 지원하지 않아요. (PC 크롬/엣지/파이어폭스 권장)';return}
+  let screen;
+  try{screen=await navigator.mediaDevices.getDisplayMedia({video:true,audio:$('sys').checked})}
+  catch(e){$('msg').textContent='화면 공유가 취소됐어요.';return}
+  streams=[screen];
+  const tracks=[...screen.getVideoTracks()];
+  const ctx=new AudioContext(),dest=ctx.createMediaStreamDestination();let hasAudio=false;
+  if(screen.getAudioTracks().length){ctx.createMediaStreamSource(new MediaStream(screen.getAudioTracks())).connect(dest);hasAudio=true}
+  if($('mic').checked){
+    try{const m=await navigator.mediaDevices.getUserMedia({audio:true});streams.push(m);ctx.createMediaStreamSource(m).connect(dest);hasAudio=true}
+    catch(e){$('msg').textContent='마이크를 못 켰어요. 화면만 녹화합니다.'}
+  }
+  if(hasAudio)tracks.push(...dest.stream.getAudioTracks());
+  const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+  rec=new MediaRecorder(new MediaStream(tracks),mime?{mimeType:mime}:undefined);
+  chunks=[];rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  rec.onstop=()=>{ctx.close();finish()};
+  screen.getVideoTracks()[0].onended=()=>{if(rec.state!=='inactive')stop()};
+  rec.start(1000);t0=Date.now();
+  timer=setInterval(()=>$('time').textContent=fmt((Date.now()-t0)/1000),250);
+  $('go').textContent='■ 정지';
+}
+function stop(){rec.stop();streams.forEach(s=>s.getTracks().forEach(t=>t.stop()));clearInterval(timer);$('go').textContent='● 화면 녹화 시작'}
+function finish(){
+  const type=rec.mimeType||'video/webm',blob=new Blob(chunks,{type}),url=URL.createObjectURL(blob);
+  const ext=type.includes('mp4')?'mp4':'webm',d=new Date(),p=n=>String(n).padStart(2,'0');
+  const name=`화면녹화_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
+  const div=document.createElement('div');div.className='card';
+  div.innerHTML=`<div class="item" style="border:0"><span>#${++count} · ${(blob.size/1048576).toFixed(1)}MB</span><a class="btn primary" href="${url}" download="${name}">⬇ 다운로드</a></div><video controls src="${url}"></video>`;
+  $('list').prepend(div);$('time').textContent='00:00';
+}
+$('go').onclick=()=>rec&&rec.state!=='inactive'?stop():start();
+</script></body></html>

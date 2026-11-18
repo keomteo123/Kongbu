@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>타이머 · 뽀모도로 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>⏱️ 타이머 · 뽀모도로</h1>
+<p class="desc">공부/작업 시간 관리. 끝나면 소리와 알림으로 알려줘요.</p>
+<div class="card center">
+  <div class="row" style="justify-content:center">
+    <button data-m="25" class="primary">집중 25분</button>
+    <button data-m="5">휴식 5분</button>
+    <button data-m="15">긴 휴식 15분</button>
+  </div>
+  <div class="row" style="margin-top:12px">
+    <div><label>직접 입력 (분)</label><input type="number" id="custom" min="1" max="600" placeholder="예: 40"></div>
+    <button id="set">설정</button>
+  </div>
+  <div class="big" id="disp">25:00</div>
+  <div class="row" style="justify-content:center">
+    <button class="primary" id="start">시작</button>
+    <button id="reset">초기화</button>
+  </div>
+  <p class="note">완료한 집중 세션: <b id="done">0</b>회 (이 페이지를 연 동안)</p>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let total=25*60,left=total,end=0,iv=null,done=0,isFocus=true;
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.ceil(s%60)%60).padStart(2,'0');
+function show(){$('disp').textContent=fmt(Math.max(0,Math.ceil(left)));document.title=(iv?fmt(Math.max(0,Math.ceil(left)))+' · ':'')+'타이머 · Kongbu'}
+function setMin(m,focus){clearInterval(iv);iv=null;total=left=m*60;isFocus=focus;$('start').textContent='시작';show()}
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>setMin(+b.dataset.m,b.dataset.m==='25'));
+$('set').onclick=()=>{const v=parseFloat($('custom').value);if(v>0)setMin(v,false)};
+$('reset').onclick=()=>setMin(total/60,isFocus);
+function beep(){
+  try{const a=new AudioContext();[0,0.25,0.5].forEach(t=>{const o=a.createOscillator(),g=a.createGain();o.connect(g);g.connect(a.destination);o.frequency.value=880;g.gain.setValueAtTime(.2,a.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.2);o.start(a.currentTime+t);o.stop(a.currentTime+t+.2)})}catch(e){}
+  if('Notification' in window&&Notification.permission==='granted')new Notification('타이머 종료!');
+}
+function tick(){
+  left=(end-Date.now())/1000;
+  if(left<=0){clearInterval(iv);iv=null;left=0;show();beep();$('start').textContent='시작';if(isFocus){done++;$('done').textContent=done}return}
+  show();
+}
+$('start').onclick=()=>{
+  if(iv){clearInterval(iv);iv=null;$('start').textContent='계속';show();return}
+  if(left<=0)left=total;
+  if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();
+  end=Date.now()+left*1000;iv=setInterval(tick,250);$('start').textContent='일시정지';
+};
+show();
+</script></body></html>
