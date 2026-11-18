@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>오디오·영상 변환/자르기 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<title>오디오·영상 변환/자르기 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script>
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🎞️ 오디오 · 영상 변환 / 자르기</h1>
-<p class="desc">mp3, wav, mp4, webm, gif 등으로 변환하고 구간을 잘라요. 내 브라우저 안에서 처리하고, 처음 한 번 변환 엔진(약 30MB)을 내려받아요. 큰 파일은 느릴 수 있어요.</p>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#f59e0b" data-icon="film"></span><div><h1>오디오 · 영상 변환 / 자르기</h1><p class="desc">mp3, wav, mp4, webm, gif 등으로 변환하고 구간을 잘라요. 내 브라우저 안에서 처리하고, 처음 한 번 변환 엔진(약 30MB)을 내려받아요. 큰 파일은 느릴 수 있어요.</p></div></div>
 <div class="card">
   <input type="file" id="file" accept="audio/*,video/*">
   <div class="row">
@@ -69,7 +69,7 @@ $('go').onclick=async()=>{
     const blob=new Blob([data.buffer],{type:mime}),url=URL.createObjectURL(blob);
     const name=file.name.replace(/\.[^.]+$/,'')+'.'+fmt;
     $('out').hidden=false;
-    $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(blob.size/1048576).toFixed(2)}MB</span><a class="btn primary" href="${url}" download="${name}">⬇ 다운로드</a></div>`;
+    $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(blob.size/1048576).toFixed(2)}MB</span><a class="btn primary" href="${url}" download="${name}">${I('download')} 다운로드</a></div>`;
     $('msg').className='msg ok';$('msg').textContent='완료!';
     await f.deleteFile(inName);await f.deleteFile(outName);
   }catch(e){$('msg').textContent=e.message||String(e)}

@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>녹음기 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🎙️ 녹음기</h1>
-<p class="desc">마이크로 녹음하고 바로 다운로드. 서버로 전송되지 않아요.</p>
+<title>녹음기 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#ef4b57" data-icon="mic"></span><div><h1>녹음기</h1><p class="desc">마이크로 녹음하고 바로 다운로드. 서버로 전송되지 않아요.</p></div></div>
 <div class="card center">
   <div id="status">대기 중</div>
   <div class="big" id="time">00:00</div>
   <canvas id="meter" width="400" height="60" style="width:100%;height:60px;background:#12141a;border-radius:8px"></canvas>
   <div class="row" style="justify-content:center;margin-top:16px">
-    <button id="rec" class="red">● 녹음 시작</button>
+    <button id="rec" class="red"><span data-icon="rec"></span>녹음 시작</button>
     <button id="pause" disabled>일시정지</button>
   </div>
   <div class="msg" id="msg"></div>
@@ -36,16 +36,16 @@ async function start(){
   rec.onstop=finish;rec.start(1000);t0=Date.now();
   timer=setInterval(()=>timeEl.textContent=fmt(elapsed()),200);
   meter();
-  recBtn.textContent='■ 정지';pauseBtn.disabled=false;statusEl.textContent='🔴 녹음 중';
+  recBtn.innerHTML=I('stop')+'정지';pauseBtn.disabled=false;statusEl.innerHTML='<span class="dot"></span>녹음 중';
 }
 function stop(){
   acc=elapsed();rec.stop();stream.getTracks().forEach(t=>t.stop());
   clearInterval(timer);cancelAnimationFrame(raf);actx&&actx.close();
-  recBtn.textContent='● 녹음 시작';pauseBtn.disabled=true;pauseBtn.textContent='일시정지';statusEl.textContent='대기 중';
+  recBtn.innerHTML=I('rec')+'녹음 시작';pauseBtn.disabled=true;pauseBtn.textContent='일시정지';statusEl.textContent='대기 중';
 }
 function togglePause(){
-  if(rec.state==='recording'){acc=elapsed();rec.pause();pauseBtn.textContent='계속';statusEl.textContent='⏸ 일시정지'}
-  else if(rec.state==='paused'){rec.resume();t0=Date.now();pauseBtn.textContent='일시정지';statusEl.textContent='🔴 녹음 중'}
+  if(rec.state==='recording'){acc=elapsed();rec.pause();pauseBtn.textContent='계속';statusEl.textContent='일시정지됨'}
+  else if(rec.state==='paused'){rec.resume();t0=Date.now();pauseBtn.textContent='일시정지';statusEl.innerHTML='<span class="dot"></span>녹음 중'}
 }
 function finish(){
   const type=rec.mimeType||'audio/webm';
@@ -54,7 +54,7 @@ function finish(){
   const d=new Date(),p=n=>String(n).padStart(2,'0');
   const name=`녹음_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
   const div=document.createElement('div');div.className='card';
-  div.innerHTML=`<div class="item" style="border:0"><span>#${++count} · ${fmt(acc)} · ${(blob.size/1024).toFixed(0)}KB</span><a class="btn primary" href="${url}" download="${name}">⬇ 다운로드</a></div><audio controls src="${url}"></audio>`;
+  div.innerHTML=`<div class="item" style="border:0"><span>#${++count} · ${fmt(acc)} · ${(blob.size/1024).toFixed(0)}KB</span><a class="btn primary" href="${url}" download="${name}">${I('download')} 다운로드</a></div><audio controls src="${url}"></audio>`;
   list.prepend(div);timeEl.textContent='00:00';
 }
 function meter(){

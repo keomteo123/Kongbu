@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>색상 추출 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🎨 색상 추출</h1>
-<p class="desc">이미지에서 주요 색상 팔레트를 뽑고, 이미지를 클릭해 원하는 색을 찍을 수 있어요. 색을 누르면 코드가 복사돼요.</p>
+<title>색상 추출 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#f97316" data-icon="drop"></span><div><h1>색상 추출</h1><p class="desc">이미지에서 주요 색상 팔레트를 뽑고, 이미지를 클릭해 원하는 색을 찍을 수 있어요. 색을 누르면 코드가 복사돼요.</p></div></div>
 <div class="card">
   <input type="file" id="file" accept="image/*">
   <div class="center" style="margin-top:14px"><canvas id="c" class="preview" style="cursor:crosshair"></canvas></div>

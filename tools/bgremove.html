@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>배경 제거 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<title>배경 제거 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script>
 <style>
   .checker{background:conic-gradient(#2a2e38 25%,#1f222a 0 50%,#2a2e38 0 75%,#1f222a 0) 0 0/20px 20px;border-radius:10px;display:inline-block;max-width:100%}
   .checker img,.checker canvas{display:block;max-width:100%;border-radius:10px}
   .bar{height:8px;background:#12141a;border-radius:99px;overflow:hidden;margin-top:10px}
   .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 </style></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>✂️ 배경 제거</h1>
-<p class="desc">AI가 사진의 배경을 지워서 투명 PNG로 만들어요. 사진은 내 브라우저 안에서만 처리돼요. 처음 한 번은 AI 모델(수십 MB)을 내려받느라 시간이 걸려요.</p>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#14b8a6" data-icon="scissors"></span><div><h1>배경 제거</h1><p class="desc">AI가 사진의 배경을 지워서 투명 PNG로 만들어요. 사진은 내 브라우저 안에서만 처리돼요. 처음 한 번은 AI 모델(수십 MB)을 내려받느라 시간이 걸려요.</p></div></div>
 <div class="card">
   <input type="file" id="file" accept="image/*">
   <div class="row" style="margin-top:12px">
@@ -27,7 +27,7 @@
     <div><label>원본</label><img id="orig" class="preview"></div>
     <div><label>결과</label><div class="checker"><canvas id="res"></canvas></div></div>
   </div>
-  <div class="row" style="justify-content:center;margin-top:14px"><button class="primary" id="dl">⬇ PNG 다운로드</button></div>
+  <div class="row" style="justify-content:center;margin-top:14px"><button class="primary" id="dl"><span data-icon="download"></span>PNG 다운로드</button></div>
 </div>
 </main>
 <script type="module">

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>랜덤 추첨 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🎲 랜덤 추첨</h1>
-<p class="desc">이름 뽑기, 팀 나누기, 숫자 뽑기.</p>
+<title>랜덤 추첨 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#6366f1" data-icon="dice"></span><div><h1>랜덤 추첨</h1><p class="desc">이름 뽑기, 팀 나누기, 숫자 뽑기.</p></div></div>
 
 <div class="card">
   <h3 style="margin-top:0">목록에서 뽑기 / 팀 나누기</h3>
@@ -15,8 +15,8 @@
     <div><label>팀 수</label><input type="number" id="teams" min="2" value="2"></div>
   </div>
   <div class="row" style="margin-top:12px">
-    <button class="primary" id="pick">🎯 뽑기</button>
-    <button id="team">👥 팀 나누기</button>
+    <button class="primary" id="pick"><span data-icon="target"></span>뽑기</button>
+    <button id="team"><span data-icon="users"></span>팀 나누기</button>
   </div>
   <div class="big" id="res" style="font-size:32px"></div>
 </div>
@@ -31,7 +31,7 @@
   <div class="big" id="numres"></div>
 </div>
 <div class="card center">
-  <button id="coin">🪙 동전 던지기</button> <button id="dice">🎲 주사위</button>
+  <button id="coin"><span data-icon="coin"></span>동전 던지기</button> <button id="dice"><span data-icon="dice"></span>주사위</button>
   <div class="big" id="misc" style="font-size:40px"></div>
 </div>
 </main>
@@ -44,7 +44,7 @@ const items=()=>$('list').value.split('\n').map(s=>s.trim()).filter(Boolean);
 $('pick').onclick=()=>{
   const a=items();if(!a.length){$('res').textContent='목록을 입력해 주세요';return}
   const n=Math.min(Math.max(1,+$('n').value||1),a.length);
-  $('res').textContent='🎉 '+shuffle(a).slice(0,n).join(', ');
+  $('res').textContent=shuffle(a).slice(0,n).join(', ');
 };
 $('team').onclick=()=>{
   const a=items(),k=Math.max(2,+$('teams').value||2);if(a.length<2){$('res').textContent='2명 이상 입력해 주세요';return}
@@ -55,6 +55,6 @@ $('num').onclick=()=>{
   let a=parseInt($('min').value),b=parseInt($('max').value);if(isNaN(a)||isNaN(b)){return}
   if(a>b)[a,b]=[b,a];$('numres').textContent=a+rnd(b-a+1);
 };
-$('coin').onclick=()=>$('misc').textContent=rnd(2)?'앞면 🙂':'뒷면 🪙';
-$('dice').onclick=()=>$('misc').textContent='🎲 '+(rnd(6)+1);
+$('coin').onclick=()=>$('misc').textContent=rnd(2)?'앞면':'뒷면';
+$('dice').onclick=()=>$('misc').textContent=(rnd(6)+1);
 </script></body></html>

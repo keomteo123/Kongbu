@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>이름·확장자 일괄 변경 · Kongbu</title><link rel="stylesheet" href="../style.css"></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🏷️ 파일 이름 · 확장자 일괄 변경</h1>
-<p class="desc">여러 파일의 이름과 확장자를 한 번에 바꿔 저장해요. 내용은 그대로이고 이름만 바뀌어요. (실제 형식 변환은 이미지/미디어 도구를 쓰세요)</p>
+<title>이름·확장자 일괄 변경 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#84cc16" data-icon="tag"></span><div><h1>파일 이름 · 확장자 일괄 변경</h1><p class="desc">여러 파일의 이름과 확장자를 한 번에 바꿔 저장해요. 내용은 그대로이고 이름만 바뀌어요. (실제 형식 변환은 이미지/미디어 도구를 쓰세요)</p></div></div>
 <div class="card">
   <input type="file" id="file" multiple>
   <div class="row">
@@ -35,7 +35,7 @@ function compute(){
   });
   $('out').hidden=!n;$('out').innerHTML='';
   files.forEach((f,i)=>{const d=document.createElement('div');d.className='item';
-    d.innerHTML=`<span><small style="color:var(--sub)"></small><br><b></b></span><button>⬇</button>`;
+    d.innerHTML=`<span><small style="color:var(--sub)"></small><br><b></b></span><button>${I('download')}</button>`;
     d.querySelector('small').textContent=f.name;d.querySelector('b').textContent=names[i];
     d.querySelector('button').onclick=()=>save(i);$('out').appendChild(d)});
   $('all').disabled=!n;

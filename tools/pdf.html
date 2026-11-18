@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PDF 도구 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<title>PDF 도구 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>📄 PDF 도구</h1>
-<p class="desc">이미지로 PDF 만들기, PDF 합치기, 페이지 나누기. 파일은 내 브라우저 밖으로 나가지 않아요.</p>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#f43f5e" data-icon="pdf"></span><div><h1>PDF 도구</h1><p class="desc">이미지로 PDF 만들기, PDF 합치기, 페이지 나누기. 파일은 내 브라우저 밖으로 나가지 않아요.</p></div></div>
 
 <div class="card">
   <h3 style="margin-top:0">이미지 → PDF</h3>
@@ -36,7 +36,7 @@ const need=()=>{if(typeof PDFLib==='undefined'){$('msg').textContent='PDF 라이
 function result(bytes,name){
   const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
   $('out').hidden=false;
-  $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(bytes.length/1024).toFixed(0)}KB</span><a class="btn primary" href="${url}" download="${name}">⬇ 다운로드</a></div>`;
+  $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(bytes.length/1024).toFixed(0)}KB</span><a class="btn primary" href="${url}" download="${name}">${I('download')} 다운로드</a></div>`;
 }
 const toPng=f=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas');c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext('2d').drawImage(i,0,0);c.toBlob(b=>b.arrayBuffer().then(res),'image/png')};i.onerror=rej;i.src=URL.createObjectURL(f)});
 $('b1').onclick=async()=>{

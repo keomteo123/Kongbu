@@ -1,35 +1,62 @@
 *{box-sizing:border-box}
-:root{--bg:#0f1115;--card:#1a1d24;--line:#2a2e38;--text:#eee;--sub:#9aa0ac;--accent:#2d7ff9;--red:#e5484d}
-body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;line-height:1.5}
-main{max-width:720px;margin:0 auto;padding:20px}
+:root{--bg:#0b0d12;--card:#141720;--card2:#1a1e29;--line:#252b38;--text:#eceff4;--sub:#8b93a3;--accent:#5b8cff;--accent2:#8a5cff;--red:#ef4b57;--ok:#3dd68c}
+html{-webkit-text-size-adjust:100%}
+body{word-break:keep-all;overflow-wrap:break-word}
+body{margin:0;min-height:100vh;color:var(--text);font-family:system-ui,-apple-system,"Pretendard","Noto Sans KR",sans-serif;line-height:1.55;
+  background:radial-gradient(900px 420px at 50% -140px,rgba(91,140,255,.18),transparent 70%),radial-gradient(600px 300px at 90% 0,rgba(138,92,255,.10),transparent 70%),var(--bg);background-attachment:fixed}
+main{max-width:760px;margin:0 auto;padding:24px 20px 48px}
 a{color:var(--accent)}
-.back{display:inline-block;margin-bottom:12px;text-decoration:none;color:var(--sub);font-size:14px}
-h1{font-size:24px;margin:0 0 6px}
-p.desc{color:var(--sub);margin:0 0 20px;font-size:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
-button,.btn{border:0;border-radius:999px;padding:11px 20px;font-size:15px;cursor:pointer;color:#fff;background:#3a3f4b;text-decoration:none;display:inline-block}
-button.primary,.btn.primary{background:var(--accent)}
-button.red{background:var(--red)}
+
+/* 상단 바 */
+.top{position:sticky;top:0;z-index:5;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(11,13,18,.72);border-bottom:1px solid var(--line)}
+.top .in{max-width:760px;margin:0 auto;padding:11px 20px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--text);text-decoration:none;letter-spacing:-.02em}
+.brand span{display:flex}.brand svg{width:28px;height:28px}
+.top .home{color:var(--sub);font-size:14px;text-decoration:none;display:flex;gap:2px;align-items:center}
+.top .home:hover{color:var(--text)}
+
+/* 제목 */
+.ttl{display:flex;gap:16px;align-items:center;margin:6px 0 24px}
+.ttl h1{margin:0}
+h1{font-size:25px;letter-spacing:-.02em;margin:0 0 6px}
+p.desc{color:var(--sub);margin:4px 0 0;font-size:14px}
+.tile{width:54px;height:54px;border-radius:16px;display:inline-grid;place-items:center;color:#fff;flex:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.3),rgba(255,255,255,0) 62%),var(--c,var(--accent));box-shadow:0 8px 22px -8px var(--c,var(--accent)),inset 0 0 0 1px rgba(255,255,255,.12)}
+.tile svg{width:27px;height:27px}
+.i{width:1.15em;height:1.15em;vertical-align:-.2em;flex:none}
+
+/* 카드 · 입력 */
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.6)}
+.card h3{margin:0 0 12px;font-size:16px;letter-spacing:-.01em}
+button,.btn{border:0;border-radius:12px;padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer;color:#fff;background:#2b3140;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:.15s}
+button:hover:not(:disabled),.btn:hover{filter:brightness(1.15)}
+button:active:not(:disabled){transform:translateY(1px)}
+button.primary,.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 18px -8px var(--accent)}
+button.red{background:linear-gradient(135deg,#f15b66,#d63a52);box-shadow:0 6px 18px -8px var(--red)}
 button:disabled{opacity:.35;cursor:not-allowed}
-input,select,textarea{width:100%;background:#12141a;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px;font-size:15px;font-family:inherit}
+input,select,textarea{width:100%;background:#0f1218;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:10px 12px;font-size:15px;font-family:inherit;outline:none;transition:.15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
 input[type=file]{padding:8px}
-input[type=checkbox],input[type=radio]{width:auto}
-input[type=color]{padding:2px;height:42px}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--accent)}
+input[type=range]{padding:0;accent-color:var(--accent)}
+input[type=color]{padding:3px;height:42px;cursor:pointer}
 textarea{min-height:160px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
-label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 5px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .row>*{flex:1;min-width:120px}
 .row>button,.row>.btn{flex:0 0 auto}
 .center{text-align:center}
 .msg{color:#f5a623;font-size:14px;min-height:20px;margin-top:10px}
-.ok{color:#3dd68c}
+.ok{color:var(--ok)}
 .drop{border:2px dashed var(--line);border-radius:14px;padding:28px;text-align:center;color:var(--sub);cursor:pointer}
 .drop.over{border-color:var(--accent);color:var(--text)}
-img.preview,video,canvas.preview{max-width:100%;border-radius:10px}
+img.preview,video,canvas.preview{max-width:100%;border-radius:12px}
 audio{width:100%}
-.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;word-break:break-all}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;word-break:break-all}
 .item:last-child{border:0}
-.big{font-size:56px;font-variant-numeric:tabular-nums;text-align:center;margin:10px 0}
+.big{font-size:58px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;text-align:center;margin:10px 0}
 .swatch{display:inline-flex;flex-direction:column;align-items:center;gap:4px;margin:6px;font-size:12px;cursor:pointer}
-.swatch i{display:block;width:56px;height:56px;border-radius:12px;border:1px solid var(--line)}
+.swatch i{display:block;width:58px;height:58px;border-radius:14px;border:1px solid var(--line)}
 .note{font-size:12px;color:var(--sub);margin-top:10px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--red);margin-right:7px;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}

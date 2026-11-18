@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI 지우개 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<title>AI 지우개 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
 <style>
   .stage{position:relative;display:inline-block;width:100%;line-height:0;touch-action:none;border-radius:10px;overflow:hidden;background:#12141a}
@@ -9,10 +9,10 @@
   .bar{height:8px;background:#12141a;border-radius:99px;overflow:hidden;margin-top:10px}
   .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
 </style></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>🧽 AI 지우개 (시험지 필기 지우기)</h1>
-<p class="desc">지우고 싶은 부분을 빨간색으로 칠하고 [지우기]를 누르면, AI가 주변을 보고 자연스럽게 메워 줘요. 사진은 내 브라우저 안에서만 처리돼요.</p>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#ec4899" data-icon="eraser"></span><div><h1>AI 지우개 (시험지 필기 지우기)</h1><p class="desc">지우고 싶은 부분을 빨간색으로 칠하고 [지우기]를 누르면, AI가 주변을 보고 자연스럽게 메워 줘요. 사진은 내 브라우저 안에서만 처리돼요.</p></div></div>
 <div class="card">
   <input type="file" id="file" accept="image/*">
   <div class="row" style="margin-top:12px">
@@ -23,10 +23,10 @@
 <div class="card" id="work" hidden>
   <div class="stage" id="stage"><canvas id="base"></canvas><canvas id="mask"></canvas></div>
   <div class="row" style="margin-top:14px">
-    <button class="primary" id="go">🧽 지우기</button>
+    <button class="primary" id="go"><span data-icon="eraser"></span>지우기</button>
     <button id="clear">칠한 것 취소</button>
-    <button id="undo" disabled>↩ 되돌리기</button>
-    <button id="dl">⬇ 저장</button>
+    <button id="undo" disabled><span data-icon="undo"></span>되돌리기</button>
+    <button id="dl"><span data-icon="download"></span>저장</button>
   </div>
   <div class="bar" id="bar" hidden><i id="barin"></i></div>
   <div class="msg" id="msg"></div>

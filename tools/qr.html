@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>QR 코드 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<title>QR 코드 · Kongbu</title><link rel="stylesheet" href="../style.css"><script src="../icons.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script></head>
-<body><main>
-<a class="back" href="../">← Kongbu</a>
-<h1>▦ QR 코드 만들기</h1>
-<p class="desc">링크나 텍스트를 QR 코드 이미지(PNG)로.</p>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#64748b" data-icon="qr"></span><div><h1>QR 코드 만들기</h1><p class="desc">링크나 텍스트를 QR 코드 이미지(PNG)로.</p></div></div>
 <div class="card">
   <label>내용 (링크, 글자 등)</label>
   <textarea id="t" style="min-height:80px;font-family:inherit" placeholder="https://..."></textarea>
@@ -15,7 +15,7 @@
     <div><label>크기</label><select id="sz"><option value="6">작게</option><option value="10" selected>보통</option><option value="16">크게</option></select></div>
   </div>
   <div class="center" style="margin-top:16px"><canvas id="c" class="preview"></canvas></div>
-  <div class="row" style="justify-content:center;margin-top:12px"><button class="primary" id="dl" disabled>⬇ PNG 다운로드</button></div>
+  <div class="row" style="justify-content:center;margin-top:12px"><button class="primary" id="dl" disabled><span data-icon="download"></span>PNG 다운로드</button></div>
   <div class="msg" id="msg"></div>
 </div>
 </main>

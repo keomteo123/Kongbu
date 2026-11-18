@@ -1,51 +1,81 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kongbu · 편리한 도구 모음</title>
-<meta name="description" content="녹음, 화면 녹화, 이미지 변환, QR, PDF 등 브라우저에서 바로 쓰는 도구 모음. 파일은 서버로 보내지 않아요.">
+<meta name="description" content="녹음, 화면 녹화, 이미지 변환, 배경 제거, PDF 등 브라우저에서 바로 쓰는 도구 모음. 파일은 서버로 보내지 않아요.">
 <link rel="stylesheet" href="style.css">
+<script src="icons.js"></script>
 <style>
-  .hero{padding:24px 0 8px}
-  .hero h1{font-size:34px}
-  .badge{display:inline-block;background:#12301f;color:#3dd68c;border-radius:999px;padding:4px 12px;font-size:13px;margin-top:6px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:20px}
-  .tool{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;text-decoration:none;color:var(--text);display:block;transition:.15s}
-  .tool:hover{border-color:var(--accent);transform:translateY(-2px)}
-  .tool .ic{font-size:30px}
-  .tool b{display:block;margin:8px 0 4px}
-  .tool span{color:var(--sub);font-size:13px}
-  footer{color:var(--sub);font-size:13px;text-align:center;margin:36px 0 10px}
-  #none{display:none;text-align:center;color:var(--sub);margin-top:24px}
+  .hero{padding:44px 0 6px;text-align:center}
+  .hero h1{font-size:clamp(30px,6vw,44px);line-height:1.15;letter-spacing:-.03em;margin:0 0 12px}
+  .hero h1 em{font-style:normal;background:linear-gradient(135deg,#7aa6ff,#a77bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--sub);font-size:16px;margin:0 auto;max-width:460px}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(61,214,140,.1);border:1px solid rgba(61,214,140,.25);color:var(--ok);border-radius:999px;padding:5px 13px;font-size:13px;margin-top:18px}
+  .search{position:relative;margin:30px 0 8px}
+  .search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:19px;height:19px;color:var(--sub)}
+  .search input{padding:14px 14px 14px 44px;border-radius:14px;font-size:16px}
+  h2{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.06em;margin:30px 2px 12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+  .tool{display:flex;gap:14px;align-items:center;background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:16px;padding:14px;text-decoration:none;color:var(--text);transition:.18s}
+  .tool:hover{border-color:var(--c);transform:translateY(-2px);box-shadow:0 14px 30px -16px var(--c)}
+  .tool .tile{width:46px;height:46px;border-radius:13px}.tool .tile svg{width:23px;height:23px}
+  .tool b{display:block;font-size:15px;letter-spacing:-.01em}
+  .tool span.s{color:var(--sub);font-size:12.5px;line-height:1.4;display:block;margin-top:2px}
+  #none{display:none;text-align:center;color:var(--sub);margin-top:30px}
+  footer{color:var(--sub);font-size:13px;text-align:center;margin-top:48px}
 </style></head>
-<body><main>
-<div class="hero">
-  <h1>🧰 Kongbu</h1>
-  <p class="desc" style="font-size:16px">설치 없이 브라우저에서 바로 쓰는 편리한 도구 모음</p>
-  <span class="badge">🔒 파일은 내 브라우저 안에서만 처리돼요</span>
-</div>
-<input id="q" placeholder="도구 검색 (예: 녹음, pdf, 변환)" style="margin-top:16px">
-<div class="grid" id="grid">
-  <a class="tool" href="tools/recorder.html" data-k="녹음 마이크 음성 recorder"><div class="ic">🎙️</div><b>녹음기</b><span>마이크 녹음 후 바로 다운로드</span></a>
-  <a class="tool" href="tools/screen.html" data-k="화면 녹화 스크린 screen record"><div class="ic">🖥️</div><b>화면 녹화</b><span>화면과 소리를 영상으로 저장</span></a>
-  <a class="tool" href="tools/image.html" data-k="이미지 사진 변환 압축 리사이즈 png jpg webp"><div class="ic">🖼️</div><b>이미지 변환·압축</b><span>PNG/JPG/WebP 변환, 용량 줄이기</span></a>
-  <a class="tool" href="tools/bgremove.html" data-k="배경 제거 지우기 누끼 투명 ai remove background"><div class="ic">✂️</div><b>배경 제거</b><span>AI로 사진 배경을 투명하게</span></a>
-  <a class="tool" href="tools/eraser.html" data-k="지우개 필기 낙서 시험지 인페인팅 ai eraser inpaint"><div class="ic">🧽</div><b>AI 지우개</b><span>시험지 필기·낙서 지우기</span></a>
-  <a class="tool" href="tools/media.html" data-k="오디오 영상 변환 자르기 mp3 mp4 gif wav"><div class="ic">🎞️</div><b>오디오·영상 변환</b><span>mp3, mp4, gif 변환과 자르기</span></a>
-  <a class="tool" href="tools/pdf.html" data-k="pdf 합치기 나누기 이미지"><div class="ic">📄</div><b>PDF 도구</b><span>이미지→PDF, 합치기, 나누기</span></a>
-  <a class="tool" href="tools/qr.html" data-k="qr 큐알 코드"><div class="ic">▦</div><b>QR 코드</b><span>링크를 QR 이미지로</span></a>
-  <a class="tool" href="tools/text.html" data-k="텍스트 글자수 json 정리"><div class="ic">📝</div><b>텍스트·JSON</b><span>글자수 세기, JSON 정리</span></a>
-  <a class="tool" href="tools/color.html" data-k="색상 컬러 팔레트 추출 color"><div class="ic">🎨</div><b>색상 추출</b><span>이미지에서 팔레트 뽑기</span></a>
-  <a class="tool" href="tools/timer.html" data-k="타이머 뽀모도로 시간 공부"><div class="ic">⏱️</div><b>타이머·뽀모도로</b><span>집중 시간 관리</span></a>
-  <a class="tool" href="tools/random.html" data-k="랜덤 추첨 뽑기 팀 주사위 동전"><div class="ic">🎲</div><b>랜덤 추첨</b><span>뽑기, 팀 나누기, 주사위</span></a>
-  <a class="tool" href="tools/rename.html" data-k="이름 확장자 변경 일괄 파일명 rename"><div class="ic">🏷️</div><b>이름·확장자 변경</b><span>여러 파일 이름 한 번에</span></a>
-</div>
-<div id="none">찾는 도구가 없어요 😢</div>
-<footer>© Kongbu · 만들고 싶은 도구가 생기면 카드 한 줄만 추가하면 돼요</footer>
+<body>
+<header class="top"><div class="in"><a class="brand" href="./"><span data-icon="logo"></span>Kongbu</a></div></header>
+<main>
+<section class="hero">
+  <h1>필요한 건 다 있는<br><em>브라우저 도구 모음</em></h1>
+  <p>설치도 가입도 없이, 열자마자 바로 쓰세요.</p>
+  <span class="badge"><span data-icon="lock"></span>파일은 내 브라우저 안에서만 처리돼요</span>
+</section>
+
+<div class="search"><span data-icon="search"></span><input id="q" placeholder="도구 검색  (예: 녹음, pdf, 변환)" autocomplete="off"></div>
+
+<div id="sections"></div>
+<div id="none">찾는 도구가 없어요</div>
+<footer>© Kongbu</footer>
 </main>
 <script>
-const q=document.getElementById('q'),cards=[...document.querySelectorAll('.tool')];
-q.addEventListener('input',()=>{
-  const v=q.value.trim().toLowerCase();let n=0;
-  cards.forEach(c=>{const hit=!v||(c.textContent+' '+c.dataset.k).toLowerCase().includes(v);c.style.display=hit?'':'none';if(hit)n++});
-  document.getElementById('none').style.display=n?'none':'block';
+var GROUPS=[
+ {t:'녹음 · 미디어',items:[
+  ['recorder','mic','#ef4b57','녹음기','마이크 녹음 후 바로 다운로드','녹음 마이크 음성 recorder'],
+  ['screen','screen','#8a5cff','화면 녹화','화면과 소리를 영상으로 저장','화면 녹화 스크린 screen record'],
+  ['media','film','#f59e0b','오디오·영상 변환','mp3, mp4, gif 변환과 자르기','오디오 영상 변환 자르기 mp3 mp4 gif wav']]},
+ {t:'이미지 · 문서',items:[
+  ['image','image','#3b82f6','이미지 변환·압축','PNG/JPG/WebP 변환, 용량 줄이기','이미지 사진 변환 압축 리사이즈 png jpg webp'],
+  ['bgremove','scissors','#14b8a6','배경 제거','AI로 사진 배경을 투명하게','배경 제거 누끼 투명 remove background'],
+  ['eraser','eraser','#ec4899','AI 지우개','시험지 필기·낙서 지우기','지우개 필기 낙서 시험지 인페인팅 eraser inpaint'],
+  ['pdf','pdf','#f43f5e','PDF 도구','이미지→PDF, 합치기, 나누기','pdf 합치기 나누기 이미지'],
+  ['color','drop','#f97316','색상 추출','이미지에서 팔레트 뽑기','색상 컬러 팔레트 추출 color'],
+  ['qr','qr','#64748b','QR 코드','링크를 QR 이미지로','qr 큐알 코드']]},
+ {t:'글 · 파일',items:[
+  ['text','type','#22c55e','텍스트·JSON','글자수 세기, JSON 정리','텍스트 글자수 json 정리'],
+  ['rename','tag','#84cc16','이름·확장자 변경','여러 파일 이름 한 번에','이름 확장자 변경 일괄 파일명 rename']]},
+ {t:'생활',items:[
+  ['timer','timer','#06b6d4','타이머·뽀모도로','집중 시간 관리','타이머 뽀모도로 시간 공부'],
+  ['random','dice','#6366f1','랜덤 추첨','뽑기, 팀 나누기, 주사위','랜덤 추첨 뽑기 팀 주사위 동전']]}
+];
+var root=document.getElementById('sections');
+GROUPS.forEach(function(g){
+  var sec=document.createElement('section');sec.className='grp';
+  var h='<h2>'+g.t+'</h2><div class="grid">';
+  g.items.forEach(function(it){
+    h+='<a class="tool" style="--c:'+it[2]+'" href="tools/'+it[0]+'.html" data-k="'+it[5]+'"><span class="tile" style="--c:'+it[2]+'">'+I(it[1],'')+'</span><span><b>'+it[3]+'</b><span class="s">'+it[4]+'</span></span></a>';
+  });
+  sec.innerHTML=h+'</div>';root.appendChild(sec);
+});
+var q=document.getElementById('q');
+q.addEventListener('input',function(){
+  var v=q.value.trim().toLowerCase(),total=0;
+  document.querySelectorAll('.grp').forEach(function(sec){
+    var n=0;sec.querySelectorAll('.tool').forEach(function(c){
+      var hit=!v||(c.textContent+' '+c.dataset.k).toLowerCase().indexOf(v)>-1;c.style.display=hit?'':'none';if(hit)n++;
+    });
+    sec.style.display=n?'':'none';total+=n;
+  });
+  document.getElementById('none').style.display=total?'none':'block';
 });
 </script></body></html>
