@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>밸런스 계산기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=4"><script src="../icons.js?v=4"></script><script src="../charts.js?v=4"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#eab308" data-icon="chart"></span><div><h1>밸런스 계산기</h1><p class="desc">레벨별 경험치 곡선과 데미지 공식을 그래프로 확인해요. 그래프에 마우스(터치)를 올리면 값이 보여요.</p></div></div>
+
+<div class="card">
+  <h3>경험치 곡선</h3>
+  <div class="row">
+    <div><label>공식</label>
+      <select id="etype"><option value="pow">거듭제곱 (기본×n^지수)</option><option value="exp">지수 증가 (기본×배율^(n-1))</option><option value="lin">선형 (기본+증가량×(n-1))</option><option value="custom">직접 수식</option></select></div>
+    <div><label>최대 레벨</label><input type="number" id="emax" value="100" min="2" max="1000"></div>
+    <div><label>기본 경험치</label><input type="number" id="ebase" value="100" step="any"></div>
+    <div><label id="elabel">지수</label><input type="number" id="ea" value="1.5" step="any"></div>
+  </div>
+  <div id="ecustomrow" hidden>
+    <label>수식 (n = 현재 레벨, 결과 = 다음 레벨까지 필요한 경험치)</label>
+    <input id="ecustom" value="100 * n * n + 50 * n" spellcheck="false">
+  </div>
+  <div class="row">
+    <div><label>그래프</label><select id="eview"><option value="per">레벨당 필요 경험치</option><option value="cum">누적 경험치</option></select></div>
+    <div><label>목표 레벨</label><input type="number" id="egoal" value="50" min="1"></div>
+    <div><label>분당 획득 경험치</label><input type="number" id="erate" value="200" min="0" step="any"></div>
+  </div>
+  <div class="stats" id="estats"></div>
+  <canvas id="echart"></canvas>
+  <div style="overflow-x:auto;margin-top:12px"><table id="etable"></table></div>
+  <div class="msg" id="emsg"></div>
+</div>
+
+<div class="card">
+  <h3>데미지 공식</h3>
+  <div class="row">
+    <div><label>공식</label>
+      <select id="dform"><option value="sub">뺄셈 (공격−방어, 최소 1)</option><option value="ratio">비율 감소 (공격×K/(K+방어))</option><option value="sq">비율형 (공격²/(공격+방어))</option><option value="custom">직접 수식</option></select></div>
+    <div><label>그래프 가로축</label><select id="dx"><option value="def">방어력</option><option value="atk">공격력</option></select></div>
+    <div><label>가로축 최대값</label><input type="number" id="dxmax" value="300" min="1"></div>
+  </div>
+  <div class="row">
+    <div><label>공격력</label><input type="number" id="datk" value="100" step="any"></div>
+    <div><label>방어력</label><input type="number" id="ddef" value="50" step="any"></div>
+    <div id="dkwrap"><label>K (기준값)</label><input type="number" id="dk" value="100" step="any"></div>
+  </div>
+  <div id="dcustomrow" hidden>
+    <label>수식 (atk = 공격력, def = 방어력)</label>
+    <input id="dcustom" value="Math.max(1, atk * atk / (atk + def))" spellcheck="false">
+  </div>
+  <div class="row">
+    <div><label>치명타 확률 (%)</label><input type="number" id="dcrit" value="20" min="0" max="100" step="any"></div>
+    <div><label>치명타 배율</label><input type="number" id="dcm" value="1.5" step="any"></div>
+    <div><label>적 HP</label><input type="number" id="dhp" value="1000" min="1" step="any"></div>
+  </div>
+  <div class="stats" id="dstats"></div>
+  <canvas id="dchart"></canvas>
+  <div class="msg" id="dmsg"></div>
+</div>
+<p class="note">직접 수식은 JavaScript 문법이에요. 예) <code>Math.pow(n, 1.8) * 30</code>, <code>Math.max(1, atk - def * 0.5)</code></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const nf=v=>isFinite(v)?Math.round(v).toLocaleString('ko-KR'):'-';
+const stat=(l,v)=>`<div class="st"><b>${v}</b><span>${l}</span></div>`;
+function dur(min){
+  if(!isFinite(min))return '-';
+  if(min<1)return '1분 미만';
+  const t=Math.round(min),d=Math.floor(t/1440),h=Math.floor(t%1440/60),m=t%60;
+  return (d?d+'일 ':'')+(h?h+'시간 ':'')+(m||(!d&&!h)?m+'분':'');
+}
+function compile(expr,args){
+  try{const f=new Function(...args,'Math','return ('+expr+')');return (...a)=>f(...a,Math)}
+  catch(e){return null}
+}
+
+/* ---------- 경험치 ---------- */
+const DEF={pow:['지수',1.5,100],exp:['배율',1.15,100],lin:['레벨당 증가량',50,100]};
+$('etype').onchange=()=>{
+  const t=$('etype').value;$('ecustomrow').hidden=t!=='custom';
+  if(DEF[t]){$('elabel').textContent=DEF[t][0];$('ea').value=DEF[t][1];$('ebase').value=DEF[t][2]}
+  $('ea').disabled=$('ebase').disabled=t==='custom';
+  calcExp();
+};
+function needFn(){
+  const t=$('etype').value,b=+$('ebase').value,a=+$('ea').value;
+  if(t==='pow')return n=>b*Math.pow(n,a);
+  if(t==='exp')return n=>b*Math.pow(a,n-1);
+  if(t==='lin')return n=>b+a*(n-1);
+  const f=compile($('ecustom').value,['n']);if(!f)return null;
+  return n=>f(n);
+}
+function calcExp(){
+  const max=Math.max(2,Math.min(1000,Math.floor(+$('emax').value)||100));
+  const f=needFn();$('emsg').textContent='';
+  if(!f){$('emsg').textContent='수식에 문법 오류가 있어요.';return}
+  const need=[0],cum=[0,0];
+  try{
+    for(let n=1;n<max;n++){const v=f(n);if(!isFinite(v))throw new Error('계산 결과가 숫자가 아니에요 (레벨 '+n+')');need[n]=v;cum[n+1]=cum[n]+v}
+  }catch(e){$('emsg').textContent='오류: '+e.message;return}
+  let goal=Math.floor(+$('egoal').value)||max;goal=Math.max(1,Math.min(max,goal));
+  const rate=+$('erate').value;
+  $('estats').innerHTML=stat('목표 레벨 '+goal+'까지 총 경험치',nf(cum[goal]))+stat('예상 소요 시간',rate>0?dur(cum[goal]/rate):'-')+stat('최대 레벨 '+max+'까지 총 경험치',nf(cum[max]));
+  const view=$('eview').value,xs=[],ys=[];
+  if(view==='per'){for(let n=1;n<max;n++){xs.push(n);ys.push(need[n])}}
+  else{for(let n=1;n<=max;n++){xs.push(n);ys.push(cum[n])}}
+  KChart.line($('echart'),{xs,series:[{name:view==='per'?'다음 레벨까지 필요 경험치':'누적 경험치',color:'#5b8cff',ys}],xLabel:'레벨',xName:'레벨',height:260});
+  const lv=[1,2,5,10,20,30,50,70,100,150,200,300,500,1000].filter(l=>l<=max);if(lv[lv.length-1]!==max)lv.push(max);
+  let h='<tr><th>레벨</th><th>다음 레벨까지</th><th>도달 총 경험치</th><th>전 레벨 대비</th></tr>';
+  lv.forEach(l=>{
+    const nx=l<max?nf(need[l]):'-',gr=(l>1&&l<max&&need[l-1]>0)?'×'+(need[l]/need[l-1]).toFixed(3):'-';
+    h+=`<tr><td>${l}</td><td>${nx}</td><td>${nf(cum[l])}</td><td>${gr}</td></tr>`;
+  });
+  $('etable').innerHTML=h;
+}
+['emax','ebase','ea','ecustom','eview','egoal','erate'].forEach(i=>$(i).addEventListener('input',calcExp));
+
+/* ---------- 데미지 ---------- */
+function dmgFn(){
+  const f=$('dform').value,K=+$('dk').value;
+  if(f==='sub')return (a,d)=>Math.max(1,a-d);
+  if(f==='ratio')return (a,d)=>a*K/(K+d);
+  if(f==='sq')return (a,d)=>(a+d)===0?0:a*a/(a+d);
+  const c=compile($('dcustom').value,['atk','def']);return c;
+}
+function calcDmg(){
+  const t=$('dform').value;$('dcustomrow').hidden=t!=='custom';$('dkwrap').hidden=t!=='ratio';$('dmsg').textContent='';
+  const f=dmgFn();if(!f){$('dmsg').textContent='수식에 문법 오류가 있어요.';return}
+  const atk=+$('datk').value,def=+$('ddef').value,crit=Math.max(0,Math.min(100,+$('dcrit').value||0))/100,cm=+$('dcm').value||1;
+  const hp=+$('dhp').value||1,xmax=Math.max(1,+$('dxmax').value||300),xvar=$('dx').value,mult=1+crit*(cm-1);
+  const xs=[],base=[],exp=[];
+  try{
+    for(let i=0;i<=120;i++){
+      const x=xmax*i/120,d=xvar==='def'?f(atk,x):f(x,def);
+      xs.push(x);base.push(d);exp.push(d*mult);
+    }
+    const d0=f(atk,def);if(!isFinite(d0))throw new Error('계산 결과가 숫자가 아니에요');
+    const e0=d0*mult;
+    const hits=d0>0?Math.ceil(hp/d0):'불가',eh=e0>0?Math.ceil(hp/e0):'불가';
+    $('dstats').innerHTML=stat('일반 데미지',(+d0.toFixed(2)).toLocaleString('ko-KR'))+stat('치명타 포함 기대 데미지',(+e0.toFixed(2)).toLocaleString('ko-KR'))+stat('처치까지 (일반 기준)',hits+(typeof hits==='number'?'타':''))+stat('처치까지 (기대값 기준)',eh+(typeof eh==='number'?'타':''));
+  }catch(e){$('dmsg').textContent='오류: '+e.message;return}
+  const series=[{name:'일반 데미지',color:'#5b8cff',ys:base}];
+  if(crit>0&&cm!==1)series.push({name:'기대 데미지(치명타 포함)',color:'#f59e0b',ys:exp});
+  KChart.line($('dchart'),{xs,series,xLabel:xvar==='def'?'방어력':'공격력',xName:xvar==='def'?'방어력':'공격력',height:260});
+}
+['dform','dx','dxmax','datk','ddef','dk','dcustom','dcrit','dcm','dhp'].forEach(i=>$(i).addEventListener('input',calcDmg));
+$('etype').onchange();calcDmg();
+</script></body></html>

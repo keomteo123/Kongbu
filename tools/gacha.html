@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>확률·가챠 시뮬레이터 · Kongbu</title><link rel="stylesheet" href="../style.css?v=4"><script src="../icons.js?v=4"></script><script src="../charts.js?v=4"></script></head>
+<body>
+<header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
+<main>
+<div class="ttl"><span class="tile" style="--c:#a855f7" data-icon="gift"></span><div><h1>확률·가챠 시뮬레이터</h1><p class="desc">확률과 천장을 넣고 수천 번 돌려서 통계를 확인해요. 시드를 넣으면 같은 결과를 다시 재현할 수 있어요.</p></div></div>
+
+<div class="card">
+  <h3>확률 설정</h3>
+  <div class="row">
+    <div><label>기본 확률 (%)</label><input type="number" id="gp" value="0.6" min="0" max="100" step="any"></div>
+    <div><label>천장 (회, 0 = 없음)</label><input type="number" id="ghard" value="90" min="0"></div>
+  </div>
+  <div class="row">
+    <div><label>소프트 천장 시작 (회, 0 = 없음)</label><input type="number" id="gsoft" value="74" min="0"></div>
+    <div><label>소프트 천장 이후 회당 확률 증가 (%)</label><input type="number" id="ginc" value="6" min="0" step="any"></div>
+  </div>
+  <h3 style="margin-top:20px">시뮬레이션</h3>
+  <div class="row">
+    <div><label>무엇을 볼까요</label>
+      <select id="gmode"><option value="first">첫 획득까지 걸린 뽑기 횟수</option><option value="fixed">정해진 횟수를 뽑았을 때 획득 개수</option></select></div>
+    <div><label>시뮬레이션 횟수</label><input type="number" id="gn" value="1000" min="1" max="200000"></div>
+  </div>
+  <div class="row">
+    <div id="gpwrap" hidden><label>한 번에 뽑는 횟수</label><input type="number" id="gpulls" value="100" min="1" max="100000"></div>
+    <div><label>1회 비용 (선택)</label><input type="number" id="gcost" value="0" min="0" step="any"></div>
+    <div><label>시드 (선택, 같은 값이면 같은 결과)</label><input id="gseed" placeholder="비우면 매번 다름"></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="primary" id="go"><span data-icon="dice"></span>시뮬레이션 실행</button></div>
+  <div class="msg" id="msg"></div>
+</div>
+
+<div class="card" id="out" hidden>
+  <div class="stats" id="stats"></div>
+  <canvas id="chart"></canvas>
+  <p class="note" id="theory"></p>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const stat=(l,v)=>`<div class="st"><b>${v}</b><span>${l}</span></div>`;
+const f1=v=>(+v.toFixed(1)).toLocaleString('ko-KR');
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hashSeed(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+$('gmode').onchange=()=>$('gpwrap').hidden=$('gmode').value!=='fixed';
+
+function readCfg(){
+  const c={p:(+$('gp').value)/100,hard:Math.floor(+$('ghard').value)||0,soft:Math.floor(+$('gsoft').value)||0,inc:(+$('ginc').value)/100||0};
+  if(!(c.p>=0&&c.p<=1))throw new Error('기본 확률은 0~100 사이로 입력해 주세요.');
+  if(c.p===0&&c.hard<=0&&!(c.soft>0&&c.inc>0))throw new Error('확률이 0%이고 천장도 없어서 영원히 안 나와요.');
+  c.prob=n=>{ // n = 마지막 획득 이후 이번이 몇 번째 뽑기인지
+    if(c.hard>0&&n>=c.hard)return 1;
+    let q=c.p;if(c.soft>0&&n>=c.soft)q=c.p+(n-c.soft+1)*c.inc;
+    return Math.min(1,q);
+  };
+  return c;
+}
+// 이론값: 첫 획득까지 걸린 횟수의 확률분포
+function theory(c){
+  const pmf=[0];let surv=1,mean=0,n=0;const lim=c.hard>0?c.hard:300000;
+  while(n<lim&&surv>1e-9){n++;const q=c.prob(n),pn=surv*q;pmf[n]=pn;mean+=n*pn;surv*=1-q}
+  const pct=r=>{let s=0;for(let i=1;i<pmf.length;i++){s+=pmf[i];if(s>=r)return i}return pmf.length-1};
+  return {pmf,mean,median:pct(.5),p90:pct(.9),p99:pct(.99)};
+}
+function hist(vals,lo){
+  let hi=-Infinity;vals.forEach(v=>{if(v>hi)hi=v});
+  const w=Math.max(1,Math.ceil((hi-lo+1)/40)),nb=Math.floor((hi-lo)/w)+1,cnt=new Array(nb).fill(0);
+  vals.forEach(v=>cnt[Math.floor((v-lo)/w)]++);
+  const labels=[],tips=[],pct=cnt.map(x=>x/vals.length*100);
+  for(let i=0;i<nb;i++){const a=lo+i*w,b=a+w-1;labels.push(a);tips.push(w===1?[''+a,pct[i].toFixed(2)+'%  ('+cnt[i].toLocaleString('ko-KR')+'회)']:[a+' ~ '+b,pct[i].toFixed(2)+'%  ('+cnt[i].toLocaleString('ko-KR')+'회)'])}
+  return {labels,pct,tips};
+}
+function pctile(sorted,r){return sorted[Math.min(sorted.length-1,Math.max(0,Math.ceil(r*sorted.length)-1))]}
+
+$('go').onclick=()=>{
+  $('msg').className='msg';$('msg').textContent='';
+  let c;try{c=readCfg()}catch(e){$('msg').textContent=e.message;return}
+  const N=Math.max(1,Math.min(200000,Math.floor(+$('gn').value)||1000)),mode=$('gmode').value,cost=+$('gcost').value||0;
+  const K=Math.max(1,Math.min(100000,Math.floor(+$('gpulls').value)||100));
+  if(mode==='fixed'&&N*K>3e8){$('msg').textContent='시뮬레이션 횟수 × 뽑기 횟수가 너무 커요. (3억 이하로)';return}
+  const seed=$('gseed').value.trim(),rnd=seed?mulberry32(hashSeed(seed)):Math.random;
+  $('go').disabled=true;$('msg').textContent='계산 중...';
+  setTimeout(()=>{
+    try{
+      const res=new Int32Array(N);let pityHit=0;
+      if(mode==='first'){
+        for(let i=0;i<N;i++){let n=0;for(;;){n++;if(rnd()<c.prob(n))break;if(n>5e6)throw new Error('너무 오래 걸려요. 확률을 확인해 주세요.')}res[i]=n;if(c.hard>0&&n===c.hard)pityHit++}
+      }else{
+        for(let i=0;i<N;i++){let since=0,hits=0;for(let j=0;j<K;j++){since++;if(rnd()<c.prob(since)){hits++;since=0}}res[i]=hits}
+      }
+      const sorted=Float64Array.from(res).sort(),avg=sorted.reduce((a,b)=>a+b,0)/N,med=pctile(sorted,.5);
+      let stats,h,tt='';
+      if(mode==='first'){
+        const th=theory(c);
+        stats=stat('평균 뽑기 횟수',f1(avg))+stat('중앙값',med)+stat('90% 안에 획득',pctile(sorted,.9)+'회')+stat('99% 안에 획득',pctile(sorted,.99)+'회')+stat('가장 빨리 / 가장 늦게',sorted[0]+' / '+sorted[N-1])
+          +(c.hard>0?stat('천장까지 간 비율',(pityHit/N*100).toFixed(1)+'%'):'');
+        if(cost>0)stats+=stat('평균 비용',f1(avg*cost))+stat('90% 안에 획득하는 비용',(pctile(sorted,.9)*cost).toLocaleString('ko-KR'));
+        h=hist(sorted,1);
+        tt=`이론값(계산식): 평균 ${f1(th.mean)}회 · 중앙값 ${th.median}회 · 90% ${th.p90}회 · 99% ${th.p99}회. 시뮬레이션 횟수가 많을수록 이론값에 가까워져요.`;
+        KChart.bars($('chart'),{labels:h.labels,values:h.pct,tipFn:i=>h.tips[i],xLabel:'뽑기 횟수',height:260});
+      }else{
+        const zero=res.filter(v=>v===0).length;
+        stats=stat('평균 획득 개수',(+avg.toFixed(2)))+stat('중앙값',med)+stat('최소 / 최대',sorted[0]+' / '+sorted[N-1])+stat('한 개도 못 얻을 확률',(zero/N*100).toFixed(1)+'%')+stat('1개 이상 얻을 확률',((N-zero)/N*100).toFixed(1)+'%');
+        if(cost>0)stats+=stat(K+'회 총 비용',(K*cost).toLocaleString('ko-KR'));
+        h=hist(sorted,0);
+        const th=theory(c),L=th.pmf.length-1;
+        if(K*L<=6e7){ // 갱신 방정식으로 정확한 기대 획득 개수 계산
+          const u=new Float64Array(K+1);u[0]=1;let ex=0;
+          for(let j=1;j<=K;j++){let q=0;const m=Math.min(j,L);for(let i=1;i<=m;i++)q+=th.pmf[i]*u[j-i];u[j]=q;ex+=q}
+          tt=`이론값(계산식): ${K}회 뽑으면 평균 ${ex.toFixed(2)}개. 시뮬레이션 횟수가 많을수록 이 값에 가까워져요.`;
+        }else tt=`참고: 평균 간격 ${f1(th.mean)}회 → ${K}회면 대략 ${(K/th.mean).toFixed(2)}개 (뽑기 횟수가 클 때만 가까운 근삿값이에요).`;
+        KChart.bars($('chart'),{labels:h.labels,values:h.pct,tipFn:i=>h.tips[i],xLabel:'획득 개수',height:260});
+      }
+      $('stats').innerHTML=stats;$('theory').textContent=tt;$('out').hidden=false;$('msg').className='msg ok';$('msg').textContent=N.toLocaleString('ko-KR')+'번 시뮬레이션 완료';
+      KChart.bars($('chart'),$('chart')._o);
+    }catch(e){$('msg').textContent='오류: '+e.message}
+    $('go').disabled=false;
+  },30);
+};
+</script></body></html>
