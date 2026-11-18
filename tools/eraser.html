@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 지우개 · Kongbu</title><link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
+<style>
+  .stage{position:relative;display:inline-block;width:100%;line-height:0;touch-action:none;border-radius:10px;overflow:hidden;background:#12141a}
+  .stage canvas{width:100%;height:auto;display:block}
+  #mask{position:absolute;left:0;top:0;opacity:.55;cursor:crosshair}
+  .bar{height:8px;background:#12141a;border-radius:99px;overflow:hidden;margin-top:10px}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+</style></head>
+<body><main>
+<a class="back" href="../">← Kongbu</a>
+<h1>🧽 AI 지우개 (시험지 필기 지우기)</h1>
+<p class="desc">지우고 싶은 부분을 빨간색으로 칠하고 [지우기]를 누르면, AI가 주변을 보고 자연스럽게 메워 줘요. 사진은 내 브라우저 안에서만 처리돼요.</p>
+<div class="card">
+  <input type="file" id="file" accept="image/*">
+  <div class="row" style="margin-top:12px">
+    <div><label>붓 크기 <span id="bv">20</span></label><input type="range" id="brush" min="3" max="80" value="20"></div>
+  </div>
+  <div class="note">팁: 한 번에 크게 칠하지 말고 필기 주변만 작게 칠해서 여러 번 나눠 지우면 결과가 더 좋아요. 사진은 긴 변 2400px까지 줄여서 불러와요.</div>
+</div>
+<div class="card" id="work" hidden>
+  <div class="stage" id="stage"><canvas id="base"></canvas><canvas id="mask"></canvas></div>
+  <div class="row" style="margin-top:14px">
+    <button class="primary" id="go">🧽 지우기</button>
+    <button id="clear">칠한 것 취소</button>
+    <button id="undo" disabled>↩ 되돌리기</button>
+    <button id="dl">⬇ 저장</button>
+  </div>
+  <div class="bar" id="bar" hidden><i id="barin"></i></div>
+  <div class="msg" id="msg"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const MODEL_URL='https://huggingface.co/Carve/LaMa-ONNX/resolve/main/lama_fp32.onnx';
+const SIZE=512,MAXSIDE=2400;
+const base=$('base'),mask=$('mask'),bctx=base.getContext('2d',{willReadFrequently:true}),mctx=mask.getContext('2d',{willReadFrequently:true});
+let session=null,history=[],srcName='image',busy=false;
+
+$('brush').oninput=()=>$('bv').textContent=$('brush').value;
+function say(t,ok){$('msg').className='msg'+(ok?' ok':'');$('msg').textContent=t}
+function progress(p){$('bar').hidden=p==null;if(p!=null)$('barin').style.width=Math.max(2,p)+'%'}
+
+// ---------- 이미지 불러오기 ----------
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;srcName=f.name.replace(/\.[^.]+$/,'');
+  const img=new Image();
+  img.onload=()=>{
+    const s=Math.min(1,MAXSIDE/Math.max(img.naturalWidth,img.naturalHeight));
+    base.width=mask.width=Math.round(img.naturalWidth*s);base.height=mask.height=Math.round(img.naturalHeight*s);
+    bctx.drawImage(img,0,0,base.width,base.height);mctx.clearRect(0,0,mask.width,mask.height);
+    history=[];$('undo').disabled=true;$('work').hidden=false;say('');
+  };
+  img.onerror=()=>{$('work').hidden=false;say('이미지를 열 수 없어요. (HEIC는 JPG로 먼저 변환해 주세요)')};
+  img.src=URL.createObjectURL(f);
+};
+
+// ---------- 칠하기 ----------
+let drawing=false,last=null;
+function pos(e){const r=mask.getBoundingClientRect();return{x:(e.clientX-r.left)*mask.width/r.width,y:(e.clientY-r.top)*mask.height/r.height}}
+function stroke(a,b){
+  const r=mask.getBoundingClientRect(),w=$('brush').value*mask.width/r.width;
+  mctx.strokeStyle=mctx.fillStyle='#ff2d2d';mctx.lineWidth=w;mctx.lineCap=mctx.lineJoin='round';
+  mctx.beginPath();mctx.moveTo(a.x,a.y);mctx.lineTo(b.x,b.y);mctx.stroke();
+  mctx.beginPath();mctx.arc(b.x,b.y,w/2,0,Math.PI*2);mctx.fill();
+}
+mask.addEventListener('pointerdown',e=>{if(busy)return;drawing=true;mask.setPointerCapture(e.pointerId);last=pos(e);stroke(last,last)});
+mask.addEventListener('pointermove',e=>{if(!drawing)return;const p=pos(e);stroke(last,p);last=p});
+['pointerup','pointercancel'].forEach(t=>mask.addEventListener(t,()=>drawing=false));
+$('clear').onclick=()=>mctx.clearRect(0,0,mask.width,mask.height);
+
+// ---------- 모델 ----------
+async function loadModel(){
+  if(session)return session;
+  if(typeof ort==='undefined')throw new Error('실행 엔진(onnxruntime)을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.');
+  ort.env.wasm.wasmPaths='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
+  ort.env.wasm.proxy=true;
+  let buf=null,cache=null;
+  try{cache=await caches.open('kongbu-models');const hit=await cache.match(MODEL_URL);if(hit)buf=await hit.arrayBuffer()}catch(e){}
+  if(!buf){
+    say('AI 모델 내려받는 중... (약 200MB, 처음 한 번만)');
+    const res=await fetch(MODEL_URL);
+    if(!res.ok)throw new Error('모델을 내려받지 못했어요 ('+res.status+')');
+    const total=+res.headers.get('content-length')||208000000,reader=res.body.getReader(),parts=[];let got=0;
+    for(;;){const {done,value}=await reader.read();if(done)break;parts.push(value);got+=value.length;progress(Math.min(99,got/total*100));say('AI 모델 내려받는 중 '+Math.round(got/1048576)+'MB')}
+    const all=new Uint8Array(got);let o=0;for(const p of parts){all.set(p,o);o+=p.length}
+    buf=all.buffer;
+    try{if(cache)await cache.put(MODEL_URL,new Response(buf))}catch(e){}
+  }
+  say('AI 모델 준비 중...');progress(100);
+  session=await ort.InferenceSession.create(new Uint8Array(buf),{executionProviders:['wasm']});
+  return session;
+}
+
+// 마스크를 몇 px 넓혀서 경계 흔적을 줄임
+function dilate(src,r){
+  const c=document.createElement('canvas');c.width=src.width;c.height=src.height;const x=c.getContext('2d');
+  for(let dx=-r;dx<=r;dx+=r)for(let dy=-r;dy<=r;dy+=r)x.drawImage(src,dx,dy);
+  return c;
+}
+
+// ---------- 지우기 ----------
+$('go').onclick=async()=>{
+  if(busy)return;
+  const W=base.width,H=base.height,md=mctx.getImageData(0,0,W,H).data;
+  let x0=W,y0=H,x1=-1,y1=-1;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(md[(y*W+x)*4+3]>10){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1<0){say('먼저 지울 부분을 빨간색으로 칠해 주세요.');return}
+  busy=true;$('go').disabled=true;
+  try{
+    const s=await loadModel();
+    say('지우는 중... (몇 초~수십 초)');progress(100);
+    await new Promise(r=>setTimeout(r,50));
+    // 지울 영역 + 주변 맥락을 정사각형에 가깝게 자름
+    const bw=x1-x0+1,bh=y1-y0+1,pad=Math.max(48,Math.max(bw,bh)*0.5);
+    const side=Math.min(Math.max(bw,bh)+pad*2,Math.max(W,H));
+    const cw=Math.min(Math.round(side),W),ch=Math.min(Math.round(side),H);
+    const rx=Math.max(0,Math.min(W-cw,Math.round((x0+x1)/2-cw/2))),ry=Math.max(0,Math.min(H-ch,Math.round((y0+y1)/2-ch/2)));
+    const ic=document.createElement('canvas');ic.width=ic.height=SIZE;const ix=ic.getContext('2d');
+    ix.drawImage(base,rx,ry,cw,ch,0,0,SIZE,SIZE);
+    const mc=document.createElement('canvas');mc.width=mc.height=SIZE;const mx=mc.getContext('2d');
+    mx.drawImage(mask,rx,ry,cw,ch,0,0,SIZE,SIZE);
+    const id=ix.getImageData(0,0,SIZE,SIZE).data,mdata=mx.getImageData(0,0,SIZE,SIZE).data;
+    const N=SIZE*SIZE,img=new Float32Array(3*N),m=new Float32Array(N);
+    for(let i=0;i<N;i++){img[i]=id[i*4]/255;img[N+i]=id[i*4+1]/255;img[2*N+i]=id[i*4+2]/255;m[i]=mdata[i*4+3]>127?1:0}
+    const names=s.inputNames,maskName=names.find(n=>/mask/i.test(n))||names[1],imgName=names.find(n=>n!==maskName);
+    const out=await s.run({[imgName]:new ort.Tensor('float32',img,[1,3,SIZE,SIZE]),[maskName]:new ort.Tensor('float32',m,[1,1,SIZE,SIZE])});
+    const o=out[s.outputNames[0]].data;
+    let mx2=0;for(let i=0;i<o.length;i+=97)if(o[i]>mx2)mx2=o[i];
+    const k=mx2<=1.5?255:1; // 모델 출력이 0~1이면 255배
+    const oc=document.createElement('canvas');oc.width=oc.height=SIZE;const ox=oc.getContext('2d');
+    const od=ox.createImageData(SIZE,SIZE);
+    for(let i=0;i<N;i++){od.data[i*4]=Math.max(0,Math.min(255,o[i]*k));od.data[i*4+1]=Math.max(0,Math.min(255,o[N+i]*k));od.data[i*4+2]=Math.max(0,Math.min(255,o[2*N+i]*k));od.data[i*4+3]=255}
+    ox.putImageData(od,0,0);
+    // 원래 해상도로 되돌려서, 칠한 부분만 합성 (나머지는 원본 화질 유지)
+    const rc=document.createElement('canvas');rc.width=cw;rc.height=ch;const rcx=rc.getContext('2d');rcx.drawImage(oc,0,0,cw,ch);
+    const res=rcx.getImageData(0,0,cw,ch).data;
+    const dm=dilate(mask,3).getContext('2d').getImageData(rx,ry,cw,ch).data;
+    history.push(bctx.getImageData(0,0,W,H));if(history.length>10)history.shift();$('undo').disabled=false;
+    const reg=bctx.getImageData(rx,ry,cw,ch),rd=reg.data;
+    for(let i=0;i<cw*ch;i++)if(dm[i*4+3]>10){rd[i*4]=res[i*4];rd[i*4+1]=res[i*4+1];rd[i*4+2]=res[i*4+2]}
+    bctx.putImageData(reg,rx,ry);
+    mctx.clearRect(0,0,W,H);
+    say('완료! 아직 남았으면 다시 칠해서 지워 보세요.',true);
+  }catch(e){say('실패했어요: '+(e&&e.message?e.message:e))}
+  progress(null);busy=false;$('go').disabled=false;
+};
+$('undo').onclick=()=>{const h=history.pop();if(h)bctx.putImageData(h,0,0);$('undo').disabled=!history.length};
+$('dl').onclick=()=>base.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=srcName+'_지움.png';a.click()},'image/png');
+</script></body></html>
