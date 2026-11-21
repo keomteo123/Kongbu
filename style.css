@@ -70,3 +70,5 @@ th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;white
 th{color:var(--sub);font-weight:600;font-size:13px}
 th:first-child,td:first-child{text-align:left}
 code{background:#0f1218;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+
+[hidden]{display:none!important}

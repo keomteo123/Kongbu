@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>픽셀 아트 에디터 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>픽셀 아트 에디터 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <style>
   .wrap{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
   .stage{position:relative;flex:1 1 320px;max-width:560px;aspect-ratio:1;border-radius:10px;overflow:hidden;touch-action:none;
@@ -49,6 +49,7 @@
   </div>
   <div class="row" style="margin-top:14px">
     <button class="primary" id="exp"><span data-icon="download"></span>PNG 저장</button>
+    <button id="share"><span data-icon="share"></span><span>공유</span></button>
     <button id="imp"><span data-icon="image"></span>이미지 불러오기</button>
     <button id="clr"><span data-icon="trash"></span>전체 지우기</button>
   </div>
@@ -124,6 +125,7 @@ $('size').onchange=()=>{
   if(data.some(v=>v)&&!confirm('캔버스 크기를 바꾸면 지금 그림은 지워져요. 계속할까요?')){$('size').value=N;return}
   undo=[];redo=[];newData(n);paint();persist();
 };
+KShare.bind($('share'),()=>new Promise(r=>{const s=+$('scale').value,o=document.createElement('canvas');o.width=o.height=N*s;const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(cv,0,0,N*s,N*s);o.toBlob(b=>r({blob:b,name:`pixel-art-${N}x${N}.png`}),'image/png')}));
 $('exp').onclick=()=>{
   const s=+$('scale').value,o=document.createElement('canvas');o.width=o.height=N*s;const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(cv,0,0,N*s,N*s);
   o.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`pixel-art-${N}x${N}.png`;a.click()},'image/png');

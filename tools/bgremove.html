@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>배경 제거 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>배경 제거 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <style>
   .checker{background:conic-gradient(#2a2e38 25%,#1f222a 0 50%,#2a2e38 0 75%,#1f222a 0) 0 0/20px 20px;border-radius:10px;display:inline-block;max-width:100%}
   .checker img,.checker canvas{display:block;max-width:100%;border-radius:10px}
@@ -27,7 +27,7 @@
     <div><label>원본</label><img id="orig" class="preview"></div>
     <div><label>결과</label><div class="checker"><canvas id="res"></canvas></div></div>
   </div>
-  <div class="row" style="justify-content:center;margin-top:14px"><button class="primary" id="dl"><span data-icon="download"></span>PNG 다운로드</button></div>
+  <div class="row" style="justify-content:center;margin-top:14px"><button class="primary" id="dl"><span data-icon="download"></span>PNG 다운로드</button> <button id="share"><span data-icon="share"></span><span>공유</span></button></div>
 </div>
 </main>
 <script type="module">
@@ -63,6 +63,7 @@ $('go').onclick=async()=>{
   }
   $('bar').hidden=true;$('go').disabled=false;
 };
+KShare.bind($('share'),()=>new Promise(r=>$('res').toBlob(b=>r({blob:b,name:srcName+'_배경제거.png'}),'image/png')));
 $('dl').onclick=()=>{
   $('res').toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=srcName+'_배경제거.png';a.click()},'image/png');
 };

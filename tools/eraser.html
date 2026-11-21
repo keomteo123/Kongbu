@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI 지우개 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>AI 지우개 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js"></script>
 <style>
   .stage{position:relative;display:inline-block;width:100%;line-height:0;touch-action:none;border-radius:10px;overflow:hidden;background:#12141a}
@@ -27,6 +27,7 @@
     <button id="clear">칠한 것 취소</button>
     <button id="undo" disabled><span data-icon="undo"></span>되돌리기</button>
     <button id="dl"><span data-icon="download"></span>저장</button>
+        <button id="share"><span data-icon="share"></span><span>공유</span></button>
   </div>
   <div class="bar" id="bar" hidden><i id="barin"></i></div>
   <div class="msg" id="msg"></div>
@@ -148,5 +149,6 @@ $('go').onclick=async()=>{
   progress(null);busy=false;$('go').disabled=false;
 };
 $('undo').onclick=()=>{const h=history.pop();if(h)bctx.putImageData(h,0,0);$('undo').disabled=!history.length};
+KShare.bind($('share'),()=>new Promise(r=>base.toBlob(b=>r({blob:b,name:srcName+'_지움.png'}),'image/png')));
 $('dl').onclick=()=>base.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=srcName+'_지움.png';a.click()},'image/png');
 </script></body></html>

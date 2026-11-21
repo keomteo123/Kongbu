@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>오디오·영상 변환/자르기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>오디오·영상 변환/자르기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://unpkg.com/@ffmpeg/util@0.12.1/dist/umd/index.js"></script></head>
 <body>
@@ -70,7 +70,7 @@ $('go').onclick=async()=>{
     const name=file.name.replace(/\.[^.]+$/,'')+'.'+fmt;
     $('out').hidden=false;
     $('out').innerHTML=`<div class="item" style="border:0"><span>${name} · ${(blob.size/1048576).toFixed(2)}MB</span><a class="btn primary" href="${url}" download="${name}">${I('download')} 다운로드</a></div>`;
-    $('msg').className='msg ok';$('msg').textContent='완료!';
+    $('msg').className='msg ok';$('msg').textContent='완료!';KShare.addTo($('out').querySelector('a.btn'),blob,name);
     await f.deleteFile(inName);await f.deleteFile(outName);
   }catch(e){$('msg').textContent=e.message||String(e)}
   $('go').disabled=false;

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>QR 코드 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>QR 코드 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script></head>
 <body>
 <header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
@@ -15,7 +15,8 @@
     <div><label>크기</label><select id="sz"><option value="6">작게</option><option value="10" selected>보통</option><option value="16">크게</option></select></div>
   </div>
   <div class="center" style="margin-top:16px"><canvas id="c" class="preview"></canvas></div>
-  <div class="row" style="justify-content:center;margin-top:12px"><button class="primary" id="dl" disabled><span data-icon="download"></span>PNG 다운로드</button></div>
+  <div class="row" style="justify-content:center;margin-top:12px"><button class="primary" id="dl" disabled><span data-icon="download"></span>PNG 다운로드</button>
+  <button id="share"><span data-icon="share"></span><span>공유</span></button></div>
   <div class="msg" id="msg"></div>
 </div>
 </main>
@@ -34,5 +35,6 @@ function draw(){
   }catch(e){$('msg').textContent='내용이 너무 길어요.'}
 }
 ['t','fg','bg','sz'].forEach(i=>$(i).addEventListener('input',draw));
+KShare.bind($('share'),()=>new Promise(r=>{if(!$('c').width)return r(null);$('c').toBlob(b=>r({blob:b,name:'qr.png'}),'image/png')}));
 $('dl').onclick=()=>{const a=document.createElement('a');a.href=$('c').toDataURL('image/png');a.download='qr.png';a.click()};
 </script></body></html>

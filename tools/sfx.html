@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>효과음 생성기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>효과음 생성기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <style>
   .chips{display:flex;flex-wrap:wrap;gap:8px}
   .chips button{padding:8px 14px;font-size:14px;background:#0f1218;border:1px solid var(--line)}
@@ -25,6 +25,7 @@
     <button class="primary" id="play"><span data-icon="play"></span>재생</button>
     <button id="mut"><span data-icon="swap"></span>조금 변형</button>
     <button id="save"><span data-icon="download"></span>wav 저장</button>
+    <button id="share"><span data-icon="share"></span><span>공유</span></button>
     <label style="display:flex;gap:8px;align-items:center;margin:0;flex:1 1 180px"><input type="checkbox" id="auto" checked> 슬라이더 놓으면 자동 재생</label>
   </div>
   <div class="note" id="info" style="margin-top:10px"></div>
@@ -134,6 +135,7 @@ $('mut').onclick=()=>{
   P.forEach(([k,,mn,mx])=>{if(['volume','bits','lowpass'].includes(k))return;let v=cur[k]*(.85+Math.random()*.3);if(Math.abs(cur[k])<1e-6)v=(Math.random()-.5)*.1*(mx-mn);cur[k]=Math.max(mn,Math.min(mx,v))});
   sync();play();
 };
+KShare.bind($('share'),()=>({blob:wav(buf),name:'sfx.wav'}));
 $('save').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(wav(buf));a.download='sfx.wav';a.click()};
 window.addEventListener('resize',()=>buf&&draw());
 sync();

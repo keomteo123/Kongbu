@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>픽셀화 변환기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script>
+<title>픽셀화 변환기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script>
 <style>
   #out{width:100%;image-rendering:pixelated;border-radius:12px;display:block;background:conic-gradient(#2a2e38 25%,#1f222a 0 50%,#2a2e38 0 75%,#1f222a 0) 0 0/16px 16px}
   .sw{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
@@ -27,6 +27,7 @@
   <div class="row" style="margin-top:14px">
     <div><label>저장 배율</label><select id="scale"><option value="1">×1 (원본 도트)</option><option value="4">×4</option><option value="8" selected>×8</option><option value="16">×16</option></select></div>
     <button class="primary" id="dl" style="margin-top:22px"><span data-icon="download"></span>PNG 저장</button>
+    <button id="share" style="margin-top:22px"><span data-icon="share"></span><span>공유</span></button>
   </div>
   <div class="note" id="info"></div>
 </div>
@@ -81,6 +82,7 @@ function run(){
   $('res').hidden=false;$('msg').textContent='';
 }
 $('sw').onclick=async e=>{const i=e.target.closest('i');if(!i)return;try{await navigator.clipboard.writeText(i.dataset.h);$('info').textContent=i.dataset.h+' 복사됨'}catch(err){$('info').textContent=i.dataset.h}};
+KShare.bind($('share'),()=>new Promise(r=>{const s=+$('scale').value,src=$('out'),t=document.createElement('canvas');t.width=src.width*s;t.height=src.height*s;const x=t.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(src,0,0,t.width,t.height);t.toBlob(b=>r({blob:b,name:`pixelized-${src.width}x${src.height}.png`}),'image/png')}));
 $('dl').onclick=()=>{
   const s=+$('scale').value,src=$('out'),t=document.createElement('canvas');t.width=src.width*s;t.height=src.height*s;const x=t.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(src,0,0,t.width,t.height);
   t.toBlob(b=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`pixelized-${src.width}x${src.height}.png`;a.click()},'image/png');

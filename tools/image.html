@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>이미지 변환·압축 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script></head>
+<title>이미지 변환·압축 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script></head>
 <body>
 <header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
 <main>
@@ -43,7 +43,7 @@ $('go').onclick=async()=>{
       const url=URL.createObjectURL(blob),name=f.name.replace(/\.[^.]+$/,'')+'.'+ext;
       const d=document.createElement('div');d.className='item';
       d.innerHTML=`<span>${name}<br><small style="color:var(--sub)">${(f.size/1024).toFixed(0)}KB → ${(blob.size/1024).toFixed(0)}KB · ${w}×${h}</small></span><a class="btn primary" href="${url}" download="${name}">${I('download')}</a>`;
-      $('out').appendChild(d);
+      $('out').appendChild(d);KShare.addTo(d.querySelector('a.btn'),blob,name);
     }catch(e){const d=document.createElement('div');d.className='item';d.textContent=f.name+' : 열 수 없는 형식이에요';$('out').appendChild(d)}
   }
 };

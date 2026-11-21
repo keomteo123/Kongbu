@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>녹음기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=5"><script src="../icons.js?v=5"></script></head>
+<title>녹음기 · Kongbu</title><link rel="stylesheet" href="../style.css?v=6"><script src="../icons.js?v=6"></script><script src="../share.js?v=6"></script></head>
 <body>
 <header class="top"><div class="in"><a class="brand" href="../"><span data-icon="logo"></span>Kongbu</a><a class="home" href="../"><span data-icon="back"></span>모든 도구</a></div></header>
 <main>
@@ -55,7 +55,7 @@ function finish(){
   const name=`녹음_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
   const div=document.createElement('div');div.className='card';
   div.innerHTML=`<div class="item" style="border:0"><span>#${++count} · ${fmt(acc)} · ${(blob.size/1024).toFixed(0)}KB</span><a class="btn primary" href="${url}" download="${name}">${I('download')} 다운로드</a></div><audio controls src="${url}"></audio>`;
-  list.prepend(div);timeEl.textContent='00:00';
+  list.prepend(div);KShare.addTo(div.querySelector('a.btn'),blob,name);timeEl.textContent='00:00';
 }
 function meter(){
   actx=new(window.AudioContext||window.webkitAudioContext)();

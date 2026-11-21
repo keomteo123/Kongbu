@@ -44,6 +44,7 @@
     pencil: '<path d="M4 20l1-4L17 4l3 3L8 19z"/>',
     swap: '<path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
     play2: '<path d="M7 4l13 8-13 8z" fill="currentColor"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2M8.6 13.4l6.8 4.2"/>',
     copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>'
   };
   var LOGO = '<svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="kg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6ea0ff"/><stop offset="1" stop-color="#8a5cff"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#kg)"/><path d="M11 8v16M11 16l9-8M13.5 15l7 9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
